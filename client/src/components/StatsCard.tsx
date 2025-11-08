@@ -10,11 +10,6 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ title, value, subtitle, icon: Icon, trend }: StatsCardProps) {
-  const getTrendColor = () => {
-    if (!trend) return "";
-    return trend === "up" ? "text-chart-2" : trend === "down" ? "text-destructive" : "text-muted-foreground";
-  };
-
   return (
     <Card data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -28,7 +23,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend }:
           {value}
         </div>
         {subtitle && (
-          <p className={`text-xs mt-1 ${getTrendColor()}`}>
+          <p className="text-xs mt-1 text-muted-foreground">
             {subtitle}
           </p>
         )}

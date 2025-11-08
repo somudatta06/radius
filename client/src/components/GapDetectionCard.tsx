@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, XCircle } from "lucide-react";
+import { X, Check } from "lucide-react";
 
 interface Gap {
   element: string;
@@ -16,16 +15,16 @@ export default function GapDetectionCard({ gaps }: GapDetectionCardProps) {
   const missingGaps = gaps.filter(g => !g.found);
   const foundElements = gaps.filter(g => g.found);
 
-  const getImpactColor = (impact: string) => {
+  const getImpactBadgeStyle = (impact: string) => {
     switch (impact) {
       case "high":
-        return "text-destructive";
+        return "bg-foreground text-background px-2 py-0.5 rounded text-xs font-medium";
       case "medium":
-        return "text-chart-4";
+        return "bg-foreground/70 text-background px-2 py-0.5 rounded text-xs font-medium";
       case "low":
-        return "text-muted-foreground";
+        return "bg-foreground/40 text-background px-2 py-0.5 rounded text-xs font-medium";
       default:
-        return "text-muted-foreground";
+        return "bg-muted text-foreground px-2 py-0.5 rounded text-xs font-medium";
     }
   };
 
@@ -33,13 +32,10 @@ export default function GapDetectionCard({ gaps }: GapDetectionCardProps) {
     <Card data-testid="card-gap-detection">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-chart-4" />
-            Missing Elements Detected
-          </CardTitle>
-          <Badge variant="outline">
+          <CardTitle>Missing Elements Detected</CardTitle>
+          <span className="text-xs text-muted-foreground border border-border px-3 py-1 rounded-full">
             {missingGaps.length} gaps found
-          </Badge>
+          </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -50,16 +46,16 @@ export default function GapDetectionCard({ gaps }: GapDetectionCardProps) {
               {missingGaps.map((gap, idx) => (
                 <div 
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
                   data-testid={`item-missing-${gap.element.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <div className="flex items-center gap-3">
-                    <XCircle className="w-4 h-4 text-destructive" />
+                    <X className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm font-medium">{gap.element}</span>
                   </div>
-                  <Badge variant="outline" className={getImpactColor(gap.impact)}>
+                  <span className={getImpactBadgeStyle(gap.impact)}>
                     {gap.impact} impact
-                  </Badge>
+                  </span>
                 </div>
               ))}
             </div>
@@ -72,12 +68,13 @@ export default function GapDetectionCard({ gaps }: GapDetectionCardProps) {
 
         {foundElements.length > 0 && (
           <div className="space-y-3 pt-4 border-t">
-            <h4 className="text-sm font-semibold text-chart-2">Present:</h4>
+            <h4 className="text-sm font-semibold">Present:</h4>
             <div className="flex flex-wrap gap-2">
               {foundElements.map((gap, idx) => (
-                <Badge key={idx} variant="outline" className="text-chart-2">
-                  ✓ {gap.element}
-                </Badge>
+                <span key={idx} className="inline-flex items-center gap-1.5 border border-border px-3 py-1 rounded-full text-xs">
+                  <Check className="w-3 h-3" />
+                  {gap.element}
+                </span>
               ))}
             </div>
           </div>

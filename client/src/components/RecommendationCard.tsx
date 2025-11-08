@@ -1,6 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, Info, TrendingUp } from "lucide-react";
 
 interface RecommendationCardProps {
   title: string;
@@ -19,25 +17,14 @@ export default function RecommendationCard({
   actionItems,
   estimatedImpact
 }: RecommendationCardProps) {
-  const getPriorityIcon = () => {
+  const getPriorityBadgeStyle = () => {
     switch (priority) {
       case "high":
-        return <AlertCircle className="w-5 h-5 text-destructive" />;
+        return "bg-foreground text-background px-3 py-1 rounded-full text-xs font-medium";
       case "medium":
-        return <Info className="w-5 h-5 text-chart-4" />;
+        return "border border-border text-foreground px-3 py-1 rounded-full text-xs font-medium";
       case "low":
-        return <CheckCircle className="w-5 h-5 text-chart-2" />;
-    }
-  };
-
-  const getPriorityVariant = (): "default" | "secondary" | "destructive" | "outline" => {
-    switch (priority) {
-      case "high":
-        return "destructive";
-      case "medium":
-        return "default";
-      case "low":
-        return "secondary";
+        return "bg-muted text-foreground px-3 py-1 rounded-full text-xs font-medium";
     }
   };
 
@@ -45,30 +32,25 @@ export default function RecommendationCard({
     <Card data-testid={`card-recommendation-${category}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1">
-            {getPriorityIcon()}
-            <div className="flex-1">
-              <CardTitle className="text-lg mb-2">{title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
+          <div className="flex-1">
+            <CardTitle className="text-lg mb-2">{title}</CardTitle>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            <Badge variant={getPriorityVariant()} className="text-xs">
+          <div className="flex flex-col gap-2 items-end flex-shrink-0">
+            <span className={getPriorityBadgeStyle()} data-testid={`badge-priority-${priority}`}>
               {priority.toUpperCase()}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {category}
-            </Badge>
+            </span>
+            <span className="text-xs text-muted-foreground capitalize">{category}</span>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <h4 className="text-sm font-semibold mb-2">Action Items:</h4>
-          <ul className="space-y-2">
+          <h4 className="text-sm font-semibold mb-3">Action Items:</h4>
+          <ul className="space-y-2.5">
             {actionItems.map((item, idx) => (
-              <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-primary mt-1">→</span>
+              <li key={idx} className="text-sm text-card-foreground flex items-start gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-foreground mt-2 flex-shrink-0" />
                 <span>{item}</span>
               </li>
             ))}
@@ -76,7 +58,6 @@ export default function RecommendationCard({
         </div>
         
         <div className="pt-3 border-t flex items-center gap-2 text-sm">
-          <TrendingUp className="w-4 h-4 text-chart-2" />
           <span className="text-muted-foreground">Estimated Impact:</span>
           <span className="font-semibold">{estimatedImpact}</span>
         </div>
