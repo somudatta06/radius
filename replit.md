@@ -106,12 +106,12 @@ World-class features section showcasing Radius's four key capabilities with data
 - Production-ready with smooth animations and premium feel
 
 ### AI Platform Logo Ribbon - PRODUCTION READY ✅
-Infinite horizontal scroll ribbon showcasing AI platform logos (ChatGPT, Claude, Gemini, Perplexity) positioned between HeroSection and VideoSection.
+Infinite horizontal scroll ribbon showcasing actual AI platform logos (ChatGPT, Claude, Gemini, Perplexity) positioned between HeroSection and VideoSection.
 
 **Design Features:**
 - **Infinite Scroll Animation**: Smooth 30-second horizontal loop (right to left)
-- **Minimal Logos**: Simple geometric SVG shapes (circle, square, diamond, triangle)
-- **Faded Appearance**: Grayscale with 40% opacity, 60% on hover
+- **Real Brand Logos**: Actual AI platform logos (ChatGPT/OpenAI, Claude/Anthropic, Google Gemini, Perplexity)
+- **Faded Appearance**: Grayscale filter with 40% opacity, 60% on hover
 - **Edge Gradients**: Smooth fade-in/out effect on left and right edges
 - **Strategic Placement**: Positioned between Hero stats and Video section
 
@@ -119,15 +119,18 @@ Infinite horizontal scroll ribbon showcasing AI platform logos (ChatGPT, Claude,
 - Component: `client/src/components/LogoRibbon.tsx`
 - Location: Landing page only, between HeroSection and VideoSection
 - Animation: CSS keyframes `scroll-logos` with 30s linear infinite loop
-- Logos: 4 unique logos duplicated 3x (12 total) for seamless looping
+- Logos: 4 real brand logo images duplicated 3x (12 total) for seamless looping
+- Logo Images: Stock images from stock_image_tool (JPG format)
+- Styling: `grayscale` CSS filter + `object-contain` for proper fitting
 - Sizing: w-16 h-16 (mobile) → w-20 h-20 (desktop)
 - Spacing: mx-8 (mobile) → mx-12 (desktop) between logos
-- Colors: Semantic tokens (text-muted-foreground, bg-background)
+- Colors: Semantic tokens (bg-background) + grayscale filter for monochrome
 - Performance: GPU-accelerated with will-change, backface-visibility
-- Accessibility: Respects prefers-reduced-motion, pause on hover
+- Accessibility: Alt text, aria-labels, respects prefers-reduced-motion, pause on hover
 
 **Quality Assurance:**
-- Architect-approved with PASS verdict
-- Visual verification confirms logos visible, faded, and animating
-- Design system compliant (semantic tokens only, no hardcoded colors)
+- Architect-approved with PASS verdict (final iteration with real logos)
+- Brand-recognizable logos using actual AI platform imagery
+- Smooth infinite scroll animation verified
+- Design system compliant (grayscale filter, semantic tokens, proper imports)
 - Production-ready with performant infinite scroll and accessibility support
