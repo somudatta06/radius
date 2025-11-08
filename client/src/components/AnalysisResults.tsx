@@ -32,6 +32,9 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
 
   const { brandInfo, overallScore, platformScores, dimensionScores, competitors, gaps, recommendations } = data;
 
+  // Extract domain for use in components
+  const domain = brandInfo.domain;
+
   // Calculate stats
   const mentionRate = dimensionScores.find(d => d.dimension === 'Mention Rate')?.score || 0;
   const avgPlatformScore = Math.round(platformScores.reduce((sum, p) => sum + p.score, 0) / platformScores.length);
@@ -40,16 +43,22 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
 
   return (
     <main className="container mx-auto px-6 py-8 pt-28">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Analysis Results</h1>
+        <p className="text-muted-foreground mt-2">Comprehensive AI visibility analysis for {domain}</p>
+      </div>
+
       {/* Liquid Glass Tab Navigation */}
       <div className="mb-12">
-        <div className="inline-flex items-center gap-2 p-1.5 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg">
+        <div className="flex items-center gap-2 p-1.5 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg overflow-x-auto flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               data-testid={`tab-${tab.id}`}
               className={`
-                px-6 py-2.5 rounded-full font-medium text-sm
+                px-4 py-2.5 rounded-full font-medium text-xs sm:text-sm whitespace-nowrap
                 transition-all duration-300 ease-out
                 relative overflow-hidden
                 ${
@@ -71,6 +80,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       {/* Tab Content */}
       {activeTab === "overview" && (
         <div className="space-y-8" data-testid="content-overview">
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatsCard
@@ -99,6 +109,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
               icon={Zap}
             />
           </div>
+
 
           {/* Platform Comparison */}
           <div>
@@ -156,6 +167,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
           </div>
         </div>
       )}
+
 
       {activeTab === "missing-elements" && (
         <div className="space-y-6" data-testid="content-missing-elements">

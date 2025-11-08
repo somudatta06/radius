@@ -1,0 +1,276 @@
+🎯 What You're Building
+A comprehensive GEO (Generative Engine Optimization) platform with:
+
+✅ Interactive metrics documentation with info buttons
+✅ Transparent calculation methodology
+✅ Competitor discovery & comparison system
+✅ LLM accuracy verification
+✅ "Open in ChatGPT" testing features
+✅ Professional PDF report generation
+
+
+📁 Files You Have
+
+REPLIT_PROMPT.md - Complete instructions for Replit AI
+types.ts - TypeScript interfaces for all data structures
+constants.ts - All metric definitions, formulas, and test queries
+
+
+🚀 How to Use This in Replit
+Option 1: Copy the Full Prompt (Recommended)
+1. Open your Replit project
+2. Open the AI chat
+3. Copy the ENTIRE contents of REPLIT_PROMPT.md
+4. Paste it into Replit AI
+5. Let it build everything!
+Option 2: Step-by-Step Implementation
+1. Start with: "Build the InfoButton component based on the specs"
+2. Then: "Create the MetricCard component"
+3. Then: "Build the Competitor Discovery section"
+4. Continue through each major section...
+
+🎨 Design Tokens (Black & White Theme)
+css--primary: #000000
+--background: #FFFFFF
+--accent: #F5F5F5
+--border: #E5E5E5
+--text-primary: #000000
+--text-secondary: #666666
+--text-tertiary: #999999
+
+📊 Score Calculation Formulas
+Overall GEO Score
+Final Score = (AIC × 0.40) + (CES × 0.35) + (MTS × 0.25)
+Factor Scores (AIC, CES, MTS)
+Factor Score = (s1 + s2 + s3 + s4 + s5) / 5
+Competitor Comparison
+Discovery = (Your_Mentions / Total_Mentions) × 10
+Comparison = (Wins / Total_Comparisons) × 10
+Utility = Average(Solution_Depth, Clarity, Coverage)
+
+🔍 What Each Metric Measures
+AIC (40% weight) - Answerability & Intent Coverage
+
+s1: Intent Coverage - Do you answer all user questions?
+s2: Directness - How quickly do you get to the answer?
+s3: Completeness - Is your content comprehensive?
+s4: Consistency - Is info up-to-date and consistent?
+s5: Conversational - Is it AI-conversation ready?
+
+CES (35% weight) - Credibility, Evidence & Safety
+
+s1: Evidence Density - Citations, stats, facts
+s2: Author Transparency - Who wrote this?
+s3: Experience & Originality - First-hand expertise?
+s4: Safety & Disclaimers - Appropriate warnings?
+s5: Freshness - Is content current?
+
+MTS (25% weight) - Machine-Readability & Technical
+
+s1: Structure & Semantics - HTML quality
+s2: Schema & Metadata - Structured data markup
+s3: Entity Clarity - Clear definitions
+s4: Crawlability - Can AI access content?
+s5: Reusability - Easy to extract?
+
+
+🏆 Competitor Discovery Process
+
+Keyword Extraction → Extract 50-100 industry keywords
+AI Response Mining → Query 6 platforms, track mentions
+Semantic Similarity → Find similar websites via embeddings
+Citation Analysis → Track co-cited brands
+Manual Verification → Filter false positives
+
+
+❓ The 7 Critical Consumer Questions
+Discovery (30%)
+
+"What are the top [category] companies?"
+"Who makes [product type]?"
+
+Comparison (35%)
+
+"[Brand A] vs [Brand B] - which is better?"
+"Compare [Product A] and [Product B]"
+"[Brand] alternatives?"
+
+Utility (35%)
+
+"How to solve [problem] using [Product]?"
+"[Product] best practices"
+
+
+🤖 "Open in ChatGPT" URLs
+javascript// ChatGPT
+https://chat.openai.com/?q=${encodeURIComponent(query)}
+
+// Claude
+https://claude.ai/new?q=${encodeURIComponent(query)}
+
+// Perplexity
+https://www.perplexity.ai/?q=${encodeURIComponent(query)}
+
+// Gemini
+https://gemini.google.com/?q=${encodeURIComponent(query)}
+
+📄 PDF Report Structure
+1. Cover Page
+   - Brand name
+   - Overall score (big number)
+   - Generated date
+
+2. Executive Summary
+   - Key findings
+   - Top 3-5 recommendations
+
+3. Metrics Breakdown
+   - AIC score + sub-scores
+   - CES score + sub-scores
+   - MTS score + sub-scores
+
+4. Platform Analysis
+   - ChatGPT: X/10
+   - Claude: X/10
+   - Gemini: X/10
+   - etc.
+
+5. Competitor Landscape
+   - Discovery scores
+   - Comparison scores
+   - Utility scores
+
+6. Recommendations
+   - Quick Wins (high impact, low effort)
+   - Strategic Bets (high impact, higher effort)
+
+7. Accuracy Verification
+   - Per-platform accuracy %
+   - Hallucinations detected
+   - Missing information
+
+✅ Implementation Checklist
+Phase 1: Core Components (Day 1)
+
+ InfoButton component with tooltips
+ MetricCard component
+ Score calculation functions
+ Basic layout with black/white theme
+
+Phase 2: Documentation (Day 2)
+
+ Metrics definitions page
+ Calculation methodology section
+ Sub-scores explanation with anchors
+
+Phase 3: Competitor Analysis (Day 3)
+
+ Competitor discovery methodology
+ 7 critical questions display
+ Comparison framework (Discovery/Comparison/Utility)
+ Competitor matrix/table
+
+Phase 4: Testing Features (Day 4)
+
+ "Open in ChatGPT" buttons
+ "Open in Claude" buttons
+ Test query generator
+ Pre-filled query URLs
+
+Phase 5: Accuracy Verification (Day 5)
+
+ LLM accuracy checker
+ Hallucination detector
+ Per-platform accuracy scores
+ Red flag indicators
+
+Phase 6: PDF Export (Day 6)
+
+ Install @react-pdf/renderer
+ Create PDF document structure
+ Style PDF components
+ Add charts as images
+ Test download functionality
+
+Phase 7: Integration & Polish (Day 7)
+
+ Connect to existing GeoPulse data
+ Add loading states
+ Error handling
+ Mobile responsive
+ Final QA
+
+
+🎯 Hackathon Demo Flow
+
+Show the URL input → User enters their website
+30-second analysis → Show progress bar
+Results dashboard → Overall score prominently displayed
+Explain metrics → Click info buttons to show definitions
+Competitor comparison → "Look, here are your competitors discovered automatically"
+Test live → "Let's test in ChatGPT right now" (click button)
+Accuracy check → "Here's how accurate AI is about your brand"
+Download PDF → "Take this professional report to stakeholders"
+
+
+💡 Pro Tips
+
+Start with mock data - Don't wait for real API integration
+Use the constants file - Everything is pre-defined
+Black & white only - Stick to the minimalist theme
+Info buttons everywhere - Make every metric clickable
+Performance matters - Cache, lazy load, optimize
+Mobile-first - Design for small screens
+Accessibility - Proper ARIA labels, keyboard nav
+
+
+🐛 Common Issues & Solutions
+Issue: PDF not generating
+Solution: Make sure @react-pdf/renderer is installed correctly
+bashnpm install @react-pdf/renderer --save
+Issue: Info buttons not showing tooltips
+Solution: Check z-index and positioning
+css.info-tooltip {
+  position: absolute;
+  z-index: 9999;
+}
+Issue: Scores not calculating correctly
+Solution: Use the helper functions from types.ts
+typescriptimport { calculateWeightedScore, calculateFactorScore } from './types';
+Issue: "Open in ChatGPT" not working
+Solution: Ensure proper URL encoding
+typescriptconst url = `https://chat.openai.com/?q=${encodeURIComponent(query)}`;
+
+📚 Key Libraries to Install
+bashnpm install @react-pdf/renderer
+npm install jspdf html2canvas
+npm install lucide-react
+npm install recharts
+npm install react-tooltip
+
+🎤 Elevator Pitch for Judges
+"GeoPulse is the first platform that shows you exactly how visible your brand is across ChatGPT, Claude, Gemini, and other AI engines. We don't just give you a score - we show you the methodology, let you test queries live, verify AI accuracy, and discover your competitors automatically. Everything is transparent, actionable, and backed by a professional PDF report you can take to stakeholders."
+
+🚢 Launch Checklist
+Before submitting to hackathon:
+
+ All features working on desktop
+ Mobile responsive
+ PDF downloads successfully
+ No console errors
+ Loading states implemented
+ Error handling in place
+ Demo website tested (use your own GeoPulse site!)
+ Practiced the demo flow
+ Screenshots/video recorded
+ README updated with features
+
+
+🏁 You're Ready!
+You have everything you need:
+✅ Complete implementation guide (REPLIT_PROMPT.md)
+✅ TypeScript types (types.ts)
+✅ All constants and formulas (constants.ts)
+✅ This quick reference
+Just paste REPLIT_PROMPT.md into Replit AI and let it build!
+Good luck with your hackathon! 🚀
