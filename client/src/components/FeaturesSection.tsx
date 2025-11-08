@@ -183,17 +183,7 @@ export const FeaturesSection = () => {
           ))}
         </div>
 
-        <div className="mt-16 text-center animate-fade-in-up">
-          <p className="text-muted-foreground mb-6">
-            Ready to see your complete AI visibility profile?
-          </p>
-          <Button 
-            size="lg"
-            data-testid="button-start-analysis-features"
-          >
-            Start Free Analysis →
-          </Button>
-        </div>
+        
       </div>
     </section>
   );
