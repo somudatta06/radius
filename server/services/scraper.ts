@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
+import https from 'https';
 
 export interface WebsiteInfo {
   url: string;
@@ -24,20 +25,22 @@ export async function scrapeWebsite(url: string): Promise<WebsiteInfo> {
     // Ensure URL has protocol
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
     
+    // Create HTTPS agent that ignores SSL certificate errors
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
+    
     let response;
     try {
       response = await fetch(fullUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; Radius/1.0; +https://radius.ai)',
         },
+        agent: fullUrl.startsWith('https') ? httpsAgent : undefined,
       });
     } catch (fetchError: any) {
       // Provide user-friendly error messages for common issues
-      if (fetchError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || 
-          fetchError.code === 'CERT_HAS_EXPIRED' ||
-          fetchError.message?.includes('certificate')) {
-        throw new Error(`SSL certificate verification failed for ${fullUrl}. The website may have an invalid or expired SSL certificate. Please contact the website administrator to resolve this issue.`);
-      } else if (fetchError.code === 'ENOTFOUND') {
+      if (fetchError.code === 'ENOTFOUND') {
         throw new Error(`Domain not found: ${fullUrl}. Please check the URL and try again.`);
       } else if (fetchError.code === 'ETIMEDOUT' || fetchError.type === 'request-timeout') {
         throw new Error(`Request timeout: ${fullUrl} took too long to respond. Please try again later.`);

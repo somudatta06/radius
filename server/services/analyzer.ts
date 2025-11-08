@@ -1108,12 +1108,17 @@ async function generatePlatformScoreDetails(
   websiteInfo: WebsiteInfo,
   geoMetrics: { aic: number; ces: number; mts: number; overall: number }
 ): Promise<import('@shared/schema').PlatformScoreDetail[]> {
+  // Helper function to clamp scores within valid range [0, 10]
+  const clampScore = (score: number): number => {
+    return Math.max(0, Math.min(10, Number(score.toFixed(1))));
+  };
+
   return platformScores.map(ps => ({
     platform: ps.platform,
-    aic_score: geoMetrics.aic + (Math.random() * 0.4 - 0.2),
-    ces_score: geoMetrics.ces + (Math.random() * 0.4 - 0.2),
-    mts_score: geoMetrics.mts + (Math.random() * 0.4 - 0.2),
-    overall_score: Number((ps.score / 10).toFixed(1)),
+    aic_score: clampScore(geoMetrics.aic + (Math.random() * 0.4 - 0.2)),
+    ces_score: clampScore(geoMetrics.ces + (Math.random() * 0.4 - 0.2)),
+    mts_score: clampScore(geoMetrics.mts + (Math.random() * 0.4 - 0.2)),
+    overall_score: clampScore(ps.score / 10),
     analysis: `${ps.platform} analysis shows ${ps.score >= 70 ? 'strong' : 'moderate'} visibility with good ${websiteInfo.hasFAQ ? 'FAQ coverage' : 'content depth'}.`,
     strengths: [
       websiteInfo.hasDocumentation ? 'Technical documentation' : 'Clear messaging',
