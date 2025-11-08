@@ -80,17 +80,6 @@ export function AnalysisTimeline({ isActive, onComplete }: AnalysisTimelineProps
       aria-label={`Analysis progress: ${percentage}%`}
     >
       <div className="w-full max-w-[600px] px-6">
-        {/* Percentage Display */}
-        <div className="text-center mb-6">
-          <p 
-            className="text-[32px] md:text-[40px] font-bold tracking-tight"
-            style={{ color: '#6B7280' }}
-            data-testid="progress-percentage"
-          >
-            {percentage}%
-          </p>
-        </div>
-
         {/* Progress Bar */}
         <div 
           className="w-full h-3 rounded-full overflow-hidden mb-4"
