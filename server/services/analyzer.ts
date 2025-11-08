@@ -60,7 +60,7 @@ export async function analyzeWebsite(url: string): Promise<AnalysisResult> {
 
   // Step 7: Generate recommendations
   console.log('Generating recommendations...');
-  const recommendations = await generateRecommendations(websiteInfo, gaps, platformScores);
+  const recommendations = await generateRecommendations(websiteInfo, brandInfo, gaps, platformScores);
 
   // Step 8: Calculate overall score
   const overallScore = calculateOverallScore(platformScores, dimensionScores);
@@ -594,39 +594,76 @@ function detectGaps(websiteInfo: WebsiteInfo): AnalysisResult['gaps'] {
 }
 
 async function generateRecommendations(
-  websiteInfo: WebsiteInfo, 
+  websiteInfo: WebsiteInfo,
+  brandInfo: BrandInfo, 
   gaps: AnalysisResult['gaps'], 
   platformScores: AnalysisResult['platformScores']
 ): Promise<AnalysisResult['recommendations']> {
   const missingElements = gaps.filter(g => !g.found).map(g => g.element);
+  const foundElements = gaps.filter(g => g.found).map(g => g.element);
   const avgScore = platformScores.reduce((sum, p) => sum + p.score, 0) / platformScores.length;
 
-  const prompt = `Generate specific, actionable recommendations to improve AI visibility for this website:
+  const prompt = `You are an AI visibility expert analyzing ${websiteInfo.url} - a ${brandInfo.industry} company.
 
-Current situation:
-- Average AI platform score: ${avgScore.toFixed(0)}
-- Missing elements: ${missingElements.join(', ')}
-- Has FAQ: ${websiteInfo.hasFAQ}
-- Has comparisons: ${websiteInfo.hasComparisons}
-- Has testimonials: ${websiteInfo.hasTestimonials}
-- Has blog: ${websiteInfo.hasBlog}
+BRAND CONTEXT:
+- Company: ${brandInfo.name}
+- Industry: ${brandInfo.industry}
+- Description: ${brandInfo.description || websiteInfo.description || 'Not available'}
+- Current AI visibility score: ${avgScore.toFixed(0)}/100
 
-Generate 3-4 prioritized recommendations. For each:
-1. title: Clear, specific title
-2. description: Why this matters for AI visibility
-3. priority: "high", "medium", or "low"
+CURRENT STRENGTHS (what they have):
+${foundElements.length > 0 ? foundElements.map(e => `- ${e} ✓`).join('\n') : '- Limited content detected'}
+
+IDENTIFIED GAPS (what's missing):
+${missingElements.length > 0 ? missingElements.map(e => `- ${e} ✗`).join('\n') : '- No major gaps detected, focus on optimization'}
+
+WEBSITE CONTENT ANALYSIS:
+- Meta description: "${websiteInfo.description || 'Missing'}"
+- Has FAQ section: ${websiteInfo.hasFAQ ? 'Yes ✓' : 'No ✗ (Critical for AI question-answering)'}
+- Has comparison pages: ${websiteInfo.hasComparisons ? 'Yes ✓' : 'No ✗ (Essential for competitive queries)'}
+- Has testimonials: ${websiteInfo.hasTestimonials ? 'Yes ✓' : 'No ✗ (Builds credibility in AI responses)'}
+- Has blog/content: ${websiteInfo.hasBlog ? 'Yes ✓' : 'No ✗ (Needed for topical authority)'}
+- Has documentation: ${websiteInfo.hasDocumentation ? 'Yes ✓' : 'No ✗ (Critical for technical queries)'}
+- Has use cases: ${websiteInfo.hasUseCases ? 'Yes ✓' : 'No ✗ (Helps AI understand applications)'}
+- Has pricing info: ${websiteInfo.hasPricing ? 'Yes ✓' : 'No ✗ (Users frequently ask about pricing)'}
+- Has about page: ${websiteInfo.hasAbout ? 'Yes ✓' : 'No ✗ (Needed for company context)'}
+
+PLATFORM PERFORMANCE BREAKDOWN:
+${platformScores.map(p => `- ${p.platform}: ${p.score}/100 ${p.score < 60 ? '⚠️ Needs attention' : p.score < 80 ? '📈 Room for improvement' : '✓ Good'}`).join('\n')}
+
+YOUR TASK:
+Generate 4 HYPER-PERSONALIZED, ACTIONABLE recommendations specifically for ${brandInfo.name} to improve their AI visibility.
+
+CRITICAL REQUIREMENTS:
+1. **Be SPECIFIC to this company** - Mention their industry, their specific gaps, their brand name
+2. **Avoid generic advice** - Don't say "Add FAQ" if they're Apple/Google/Microsoft (they already have extensive content)
+3. **Prioritize based on ACTUAL gaps** - If they have testimonials, don't recommend adding them
+4. **Consider their maturity level** - Large brands need optimization, small brands need foundational content
+5. **Make action items CONCRETE** - "Create a comparison page: ${brandInfo.name} vs [specific competitor]" not "add comparison content"
+6. **Reference their actual content** - Use their meta description, title, industry in recommendations
+7. **Think like a consultant** - What would you tell THIS specific company in a $10k consulting engagement?
+
+For each recommendation:
+1. title: Specific to this brand (mention company/industry if relevant)
+2. description: Explain why THIS company needs THIS specifically (reference their gaps/strengths)
+3. priority: "high", "medium", or "low" (based on impact + their specific situation)
 4. category: "content", "technical", "seo", or "competitive"
-5. actionItems: 3-4 specific, actionable steps
-6. estimatedImpact: Score improvement estimate (e.g., "+10-12 points")
+5. actionItems: 3-4 CONCRETE, BRAND-SPECIFIC steps they can take TODAY
+6. estimatedImpact: Realistic score improvement ("+X-Y points")
 
-Focus on the highest-impact improvements first.
+EXAMPLES OF GOOD VS BAD:
+❌ BAD (Generic): "Add FAQ Section" 
+✓ GOOD (Specific): "Create AI-Optimized FAQ for ${brandInfo.industry} Decision-Makers addressing '${brandInfo.name} vs [competitor]' and 'How does ${brandInfo.name} handle [specific use case]'"
 
-Return JSON:
+❌ BAD (Generic): "Improve blog content"
+✓ GOOD (Specific): "Develop ${brandInfo.industry}-specific use case library showcasing how ${brandInfo.name} solves [problem] better than alternatives like [competitor]"
+
+Return JSON only:
 {
   "recommendations": [...]
 }`;
 
-  const response = await analyzeWithGPT(prompt, { jsonMode: true, temperature: 0.7 });
+  const response = await analyzeWithGPT(prompt, { jsonMode: true, temperature: 0.8 });
   
   let parsed: unknown;
   try {
@@ -687,59 +724,117 @@ Return JSON:
   } catch (error) {
     console.error('Failed to parse recommendations JSON:', error);
     // Return basic recommendations based on gaps
-    return generateFallbackRecommendations(missingElements);
+    return generateFallbackRecommendations(missingElements, brandInfo);
   }
 }
 
-function generateFallbackRecommendations(missingElements: string[]): AnalysisResult['recommendations'] {
+function generateFallbackRecommendations(missingElements: string[], brandInfo?: BrandInfo): AnalysisResult['recommendations'] {
   const recommendations: AnalysisResult['recommendations'] = [];
+  const brandName = brandInfo?.name || 'your brand';
+  const industry = brandInfo?.industry || 'your industry';
   
-  if (missingElements.includes('FAQ Section')) {
+  // Prioritize the top 2-3 most impactful gaps
+  const highImpactGaps = missingElements.filter(e => 
+    ['FAQ Section', 'Comparison Pages', 'Documentation'].includes(e)
+  );
+  
+  if (highImpactGaps.includes('FAQ Section')) {
     recommendations.push({
-      title: 'Add Comprehensive FAQ Section',
-      description: 'AI platforms favor websites with structured Q&A content.',
+      title: `Develop AI-Optimized FAQ Targeting ${industry} Queries`,
+      description: `AI platforms heavily weight FAQ content when answering user questions about ${brandName}. Without structured Q&A, you're invisible to question-based searches in ChatGPT, Claude, and Perplexity.`,
       priority: 'high' as const,
       category: 'content' as const,
       actionItems: [
-        'Create a dedicated FAQ page with 15-20 questions',
-        'Use schema markup for FAQ content',
-        'Include competitor comparison questions'
+        `Research top 20 questions users ask about ${industry} solutions using AnswerThePublic and AlsoAsked`,
+        `Create dedicated FAQ page with Schema.org FAQPage markup for maximum AI visibility`,
+        `Include comparison questions: "How does ${brandName} compare to [competitor]?"`,
+        `Add conversational answers (150-200 words each) that directly address user intent`
       ],
-      estimatedImpact: '+10-12 points'
+      estimatedImpact: '+10-15 points'
     });
   }
   
-  if (missingElements.includes('Comparison Pages')) {
+  if (highImpactGaps.includes('Comparison Pages')) {
     recommendations.push({
-      title: 'Create Competitor Comparison Pages',
-      description: 'Comparison content helps AI platforms understand your positioning.',
+      title: `Build Competitive Comparison Content for ${industry}`,
+      description: `Most B2B buyers compare 3-5 options before deciding. Without comparison pages, ${brandName} loses out when users ask AI "What are alternatives to [competitor]?" or "${brandName} vs [competitor]".`,
       priority: 'high' as const,
       category: 'competitive' as const,
       actionItems: [
-        'Build comparison pages for top 3 competitors',
-        'Include feature comparison tables',
-        'Use neutral, informative tone'
+        `Identify top 5 competitors in ${industry} through Tracxn, Crunchbase, or G2`,
+        `Create individual comparison pages: "${brandName} vs [Competitor]" with honest, feature-based analysis`,
+        `Include comparison tables with pricing, features, use cases, and ideal customer profiles`,
+        `Optimize for queries like "best ${industry} tools 2025" and "${brandName} alternatives"`
       ],
-      estimatedImpact: '+8-10 points'
+      estimatedImpact: '+12-18 points'
     });
   }
   
+  if (missingElements.includes('Use Cases')) {
+    recommendations.push({
+      title: `Create ${industry}-Specific Use Case Library`,
+      description: `AI platforms need concrete examples to recommend solutions. Use cases help ChatGPT/Claude understand WHEN to recommend ${brandName} for specific problems.`,
+      priority: 'high' as const,
+      category: 'content' as const,
+      actionItems: [
+        `Document 5-7 detailed use cases showing how ${brandName} solves specific ${industry} problems`,
+        `Include metrics: "Company X increased [metric] by Y% using ${brandName}"`,
+        `Structure as problem → solution → results for maximum AI clarity`,
+        `Add industry-specific keywords AI models associate with your solution category`
+      ],
+      estimatedImpact: '+8-12 points'
+    });
+  }
+  
+  if (missingElements.includes('Documentation')) {
+    recommendations.push({
+      title: `Publish Comprehensive Technical Documentation`,
+      description: `For technical products, documentation is critical for AI visibility. Without it, AI platforms can't answer "how to" questions about ${brandName}.`,
+      priority: 'high' as const,
+      category: 'technical' as const,
+      actionItems: [
+        `Create getting-started guide, API reference, and implementation tutorials`,
+        `Use clear headings (H1-H4) and structured sections for AI crawlers`,
+        `Include code examples, diagrams, and step-by-step instructions`,
+        `Implement OpenAPI/Swagger spec if you have an API for maximum machine-readability`
+      ],
+      estimatedImpact: '+10-14 points'
+    });
+  }
+  
+  // If no high-impact gaps, focus on optimization
   if (recommendations.length === 0) {
     recommendations.push({
-      title: 'Improve Content Depth',
-      description: 'Add more detailed content to improve AI visibility.',
+      title: `Optimize Existing Content for AI Discoverability`,
+      description: `${brandName} has solid foundational content. Focus on optimizing what you have for better AI platform rankings and mention rates.`,
+      priority: 'medium' as const,
+      category: 'seo' as const,
+      actionItems: [
+        `Add Schema.org markup (Organization, Product, FAQPage) to existing pages`,
+        `Expand thin content pages to 800+ words with specific ${industry} examples`,
+        `Create internal linking structure connecting related topics (signals topic authority to AI)`,
+        `Update meta descriptions to directly answer common ${industry} questions`
+      ],
+      estimatedImpact: '+6-10 points'
+    });
+    
+    recommendations.push({
+      title: `Develop Thought Leadership Content in ${industry}`,
+      description: `Establish ${brandName} as an authority by publishing expert insights AI platforms can cite when discussing ${industry} trends and best practices.`,
       priority: 'medium' as const,
       category: 'content' as const,
       actionItems: [
-        'Expand product descriptions',
-        'Add use case examples',
-        'Create detailed how-to guides'
+        `Launch blog with weekly posts on ${industry} trends, challenges, and solutions`,
+        `Include original data, case studies, or proprietary research (AI heavily weights unique insights)`,
+        `Guest post on industry publications to build external citations`,
+        `Repurpose content into multiple formats (guides, videos, infographics) for maximum reach`
       ],
-      estimatedImpact: '+5-7 points'
+      estimatedImpact: '+5-8 points'
     });
   }
   
-  return recommendations;
+  // Return top 4 recommendations
+  return recommendations.slice(0, 4);
 }
 
 function calculateOverallScore(
