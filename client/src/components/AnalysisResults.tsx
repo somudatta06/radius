@@ -16,7 +16,6 @@ import { OpenInAIButton } from "@/components/OpenInAIButton";
 import { PDFReport } from "@/components/PDFReport";
 import { BriefSection } from "@/components/BriefSection";
 import { JavaScriptHeavyErrorModal } from "@/components/JavaScriptHeavyErrorModal";
-import { QualityWarningBanner } from "@/components/QualityWarningBanner";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
 import type { AnalysisResult } from "@shared/schema";
 import type { ReportData } from "@/lib/geo-types";
@@ -163,9 +162,6 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       {/* Tab Content */}
       {activeTab === "overview" && (
         <div className="space-y-8" data-testid="content-overview">
-          {/* Quality Warning Banner */}
-          {qualityWarning && <QualityWarningBanner qualityWarning={qualityWarning} />}
-          
           {/* GEO Metrics */}
           {geoMetrics && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
