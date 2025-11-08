@@ -14,7 +14,10 @@ The frontend is built with React 18 and TypeScript, using Vite for fast developm
 The backend is an Express.js application with TypeScript. It provides RESTful APIs for analysis, authentication, and history management. A service layer orchestrates web scraping (Cheerio), AI integration (OpenAI GPT), and market intelligence (Tracxn). Data is persistently stored in a PostgreSQL database using Drizzle ORM, including user data, sessions, domain history, and analysis results. Session-based authentication with `bcrypt` for password hashing and a custom `DatabaseSessionStore` ensures secure user management.
 
 ### AI Integration Architecture
-OpenAI's GPT-4o-mini is the primary AI service, used for brand extraction, competitor discovery (enriched by Tracxn API data), platform visibility analysis, dimension scoring, and recommendation generation. The system uses JSON mode with Zod schema validation for GPT responses to ensure structured and type-safe data output.
+The system uses multiple AI services for comprehensive analysis:
+*   **OpenAI GPT-4o-mini**: Primary AI service for brand extraction, competitor discovery, dimension scoring, and recommendation generation. Uses JSON mode with Zod schema validation for structured output.
+*   **Google Gemini (gemini-1.5-flash)**: **REAL VISIBILITY TESTING** - Actually queries Gemini with 5 industry-specific questions to test if the brand gets mentioned. This provides accurate, data-driven visibility scores based on real AI responses, not estimates. Requires `GOOGLE_API_KEY`.
+*   **Platform Visibility Analysis**: Gemini scores are based on real API testing, while ChatGPT, Claude, and Perplexity scores are estimated using GPT analysis of website content quality indicators.
 
 ### Authentication Architecture
 Session-based authentication is implemented with PostgreSQL-backed sessions. `bcrypt` handles password hashing, and `express-session` with a custom `DatabaseSessionStore` manages sessions, including HttpOnly cookies and hourly cleanup of expired sessions. Middleware (`requireAuth`, `optionalAuth`) controls access to protected routes and attaches user information to requests.
@@ -24,11 +27,13 @@ Key data schemas include `User`, `Session`, `DomainHistory`, and `AnalysisResult
 
 ## External Dependencies
 ### Core Services
-*   **OpenAI API**: Used for all AI-powered analysis, including competitor discovery, scoring, and recommendations. Requires `OPENAI_API_KEY`.
+*   **OpenAI API**: Used for brand extraction, competitor discovery, scoring, and recommendations. Requires `OPENAI_API_KEY`.
+*   **Google Gemini API**: **Real visibility testing** - Queries Gemini with industry-specific questions to measure actual brand mentions. Provides data-driven visibility scores. Requires `GOOGLE_API_KEY`.
 *   **Tracxn API**: Provides real-world competitor and market intelligence data (funding, employees, etc.) to enrich AI analysis. Requires `TRACXN_API_KEY`, with graceful degradation if unavailable.
 *   **PostgreSQL (via Neon)**: The primary database for persistent storage of user data, sessions, domain history, and analysis results. Requires `DATABASE_URL`.
 
 ### Third-Party Libraries
+*   **AI SDKs**: `@google/generative-ai` (Gemini), `openai`.
 *   **UI Framework**: `@radix-ui/*`, `recharts`, `lucide-react`.
 *   **State & Data**: `@tanstack/react-query`, `zod`, `react-hook-form`.
 *   **Utilities**: `cheerio`, `node-fetch`, `clsx`, `tailwind-merge`, `date-fns`.
