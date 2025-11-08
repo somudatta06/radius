@@ -7,6 +7,7 @@ import ScoreBreakdown from "@/components/ScoreBreakdown";
 import RecommendationCard from "@/components/RecommendationCard";
 import { MissingElementsCard } from "@/components/MissingElementsCard";
 import { MetricCard } from "@/components/MetricCard";
+import { MetricInfoCards } from "@/components/MetricInfoCards";
 import { CalculationMethodology } from "@/components/CalculationMethodology";
 import { CompetitorDiscovery } from "@/components/CompetitorDiscovery";
 import { CompetitorComparison } from "@/components/CompetitorComparison";
@@ -240,6 +241,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
         <div className="space-y-6" data-testid="content-score-breakdown">
           <h2 className="text-2xl font-bold">Dimension Analysis</h2>
           <ScoreBreakdown data={dimensionScores} />
+          <MetricInfoCards data={dimensionScores} />
         </div>
       )}
       {activeTab === "competitors" && (
