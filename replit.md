@@ -23,14 +23,16 @@ Preferred communication style: Simple, everyday language.
 - **Color Palette**: Black (#000000) primary, white (#FFFFFF) background, gray (#6B7280) text, blue (#3B82F6) accent
 - **Path Aliases**: Configured for clean imports (`@/components`, `@/lib`, `@/hooks`, `@shared`)
 
-**Landing Page Design** (November 2025 Redesign - GEOoptimize Style):
-- **Navigation**: Black circular logo icon, plain gray nav links (Features, Pricing, Resources, About), black "Start Free Trial" button
+**Landing Page Design** (November 2025 Final):
+- **Navigation**: Black circular logo icon, plain gray nav links (Features, Pricing, About), "Login" text link, black "Get Started" button
 - **Hero Section**: 
-  - Headline: "Be Found in the Age of AI." with black liquid glass highlight on "Age of AI" (white text on glossy black pill background)
-  - Sub-headline: "Advanced GEO targeting and optimization tools that boost your visibility in specific geographic markets"
-  - No badge, no metrics section
-- **Search Component**: White rounded-full input with "www.techstartup.io" placeholder, circular black search icon button positioned inside on the right
-- **Visual Style**: Clean, minimalist, professional with high contrast and generous whitespace
+  - Badge: "AI-Powered Visibility Analysis" (gray background)
+  - Headline: "Increase your visibility across AI platforms" with black liquid glass highlight on "across AI platforms" (white text on glossy black pill background with gradient sheen)
+  - Sub-headline: "Discover how ChatGPT, Claude, Gemini, and Perplexity perceive your brand. Get actionable insights to boost your AI presence."
+  - Metrics: "500+ analyses run" (with green pulsing dot), "89% avg improvement", "4 AI platforms analyzed"
+- **Search Component**: White rounded-full input with "Enter your website URL (e.g., example.com)" placeholder, circular black search icon button positioned inside on the right
+- **Helper Text**: "No credit card required • Free comprehensive analysis • Results in 30 seconds"
+- **Visual Style**: Clean, minimalist, professional with high contrast and generous whitespace, premium liquid glass effect on key phrase
 
 **State Management**:
 - **TanStack Query (React Query)** for server state management and API caching
