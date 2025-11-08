@@ -123,6 +123,10 @@ export default function Home() {
                   marketOverlap={competitor.marketOverlap}
                   strengths={competitor.strengths}
                   isCurrentBrand={competitor.isCurrentBrand || false}
+                  funding={competitor.funding}
+                  employees={competitor.employees}
+                  founded={competitor.founded}
+                  description={competitor.description}
                 />
               ))}
             </div>

@@ -45,6 +45,10 @@ export const analysisResultSchema = z.object({
     marketOverlap: z.number().min(0).max(100),
     strengths: z.array(z.string()),
     isCurrentBrand: z.boolean().optional(),
+    funding: z.number().optional(),
+    employees: z.number().optional(),
+    founded: z.number().optional(),
+    description: z.string().optional(),
   })),
   gaps: z.array(z.object({
     element: z.string(),

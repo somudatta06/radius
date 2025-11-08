@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
+import { ExternalLink, TrendingUp, TrendingDown, DollarSign, Users, Calendar } from "lucide-react";
 
 interface CompetitorCardProps {
   rank: number;
@@ -10,6 +10,10 @@ interface CompetitorCardProps {
   marketOverlap: number;
   strengths: string[];
   isCurrentBrand?: boolean;
+  funding?: number;
+  employees?: number;
+  founded?: number;
+  description?: string;
 }
 
 export default function CompetitorCard({
@@ -19,7 +23,11 @@ export default function CompetitorCard({
   score,
   marketOverlap,
   strengths,
-  isCurrentBrand = false
+  isCurrentBrand = false,
+  funding,
+  employees,
+  founded,
+  description
 }: CompetitorCardProps) {
   return (
     <Card 
@@ -52,7 +60,7 @@ export default function CompetitorCard({
                 <ExternalLink className="w-3 h-3" />
               </a>
               
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-3 mb-3">
                 <div className="flex items-center gap-1 text-sm">
                   <span className="text-muted-foreground">Score:</span>
                   <span className="font-semibold" data-testid={`text-competitor-score-${rank}`}>{score}</span>
@@ -61,6 +69,24 @@ export default function CompetitorCard({
                   <span className="text-muted-foreground">Overlap:</span>
                   <span className="font-semibold">{marketOverlap}%</span>
                 </div>
+                {funding !== undefined && (
+                  <div className="flex items-center gap-1 text-sm" data-testid={`text-competitor-funding-${rank}`}>
+                    <DollarSign className="w-3 h-3 text-muted-foreground" />
+                    <span className="font-semibold">${(funding / 1000000).toFixed(1)}M</span>
+                  </div>
+                )}
+                {employees !== undefined && (
+                  <div className="flex items-center gap-1 text-sm" data-testid={`text-competitor-employees-${rank}`}>
+                    <Users className="w-3 h-3 text-muted-foreground" />
+                    <span className="font-semibold">{employees.toLocaleString()}</span>
+                  </div>
+                )}
+                {founded !== undefined && (
+                  <div className="flex items-center gap-1 text-sm" data-testid={`text-competitor-founded-${rank}`}>
+                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                    <span className="font-semibold">{founded}</span>
+                  </div>
+                )}
               </div>
 
               {strengths.length > 0 && (

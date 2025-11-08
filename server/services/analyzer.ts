@@ -1,5 +1,6 @@
 import { analyzeWithGPT } from './openai';
 import { scrapeWebsite, type WebsiteInfo } from './scraper';
+import { tracxnService } from './tracxn';
 import type { AnalysisResult } from '@shared/schema';
 
 interface BrandInfo {
@@ -185,13 +186,44 @@ Return JSON format:
 }
 
 async function discoverCompetitors(brandInfo: BrandInfo, websiteInfo: WebsiteInfo): Promise<AnalysisResult['competitors']> {
+  // Try to get competitors from Tracxn API first
+  let tracxnCompetitors: Array<any> = [];
+  let tracxnEnrichment: Map<string, any> = new Map();
+  
+  if (tracxnService.isAvailable()) {
+    console.log('Fetching competitors from Tracxn API...');
+    try {
+      const competitors = await tracxnService.getCompetitors(brandInfo.domain, 5);
+      tracxnCompetitors = competitors;
+      
+      // Also get company info for the current brand
+      const currentCompanyInfo = await tracxnService.searchCompany(brandInfo.domain);
+      if (currentCompanyInfo) {
+        tracxnEnrichment.set(brandInfo.domain, currentCompanyInfo);
+      }
+      
+      console.log(`Found ${competitors.length} competitors from Tracxn`);
+    } catch (error) {
+      console.error('Error fetching from Tracxn:', error);
+    }
+  }
+
+  // Use GPT to analyze and rank competitors
+  const competitorList = tracxnCompetitors.length > 0
+    ? tracxnCompetitors.map(c => `${c.name} (${c.domain})`).join(', ')
+    : 'discover competitors';
+
   const prompt = `You are analyzing competitors for ${brandInfo.name} (${brandInfo.domain}), a company in the ${brandInfo.industry} industry.
 
 Based on this information:
 - Industry: ${brandInfo.industry}
 - Description: ${brandInfo.description}
+${tracxnCompetitors.length > 0 ? `- Known competitors: ${competitorList}` : ''}
 
-Generate a realistic list of 3-4 ACTUAL competitors in this space. These should be real companies that compete in the same market.
+${tracxnCompetitors.length > 0 
+  ? 'Using the provided competitor list, analyze and rank them.' 
+  : 'Generate a realistic list of 3-4 ACTUAL competitors in this space. These should be real companies that compete in the same market.'
+}
 
 For each competitor, provide:
 1. name: Company name
@@ -235,6 +267,9 @@ Return JSON:
     
     // Insert the current brand at their rank
     const yourRank = data.yourRank || 1;
+    
+    // Enrich current brand with Tracxn data if available
+    const currentBrandData = tracxnEnrichment.get(brandInfo.domain);
     allCompetitors.splice(yourRank - 1, 0, {
       rank: yourRank,
       name: brandInfo.name,
@@ -243,9 +278,13 @@ Return JSON:
       marketOverlap: 100,
       strengths: ['Current analysis target'],
       isCurrentBrand: true,
+      funding: currentBrandData?.funding?.total,
+      employees: currentBrandData?.employees,
+      founded: currentBrandData?.founded,
+      description: currentBrandData?.description,
     });
 
-    // Renumber ranks and return as properly typed competitors
+    // Renumber ranks and enrich with Tracxn data
     return allCompetitors.map((comp, idx) => {
       // Validate and coerce competitor data
       const name = String(comp.name || 'Unknown Competitor');
@@ -256,6 +295,12 @@ Return JSON:
         ? (comp.strengths as Array<unknown>).filter(s => typeof s === 'string') as string[]
         : [];
       
+      // Find matching Tracxn competitor data
+      const tracxnMatch = tracxnCompetitors.find(tc => 
+        tc.domain.toLowerCase() === domain.toLowerCase() || 
+        tc.name.toLowerCase() === name.toLowerCase()
+      );
+      
       return {
         rank: idx + 1,
         name,
@@ -264,11 +309,51 @@ Return JSON:
         marketOverlap,
         strengths,
         isCurrentBrand: Boolean(comp.isCurrentBrand),
+        funding: tracxnMatch?.funding || (typeof comp.funding === 'number' ? comp.funding : undefined),
+        employees: tracxnMatch?.employees || (typeof comp.employees === 'number' ? comp.employees : undefined),
+        founded: typeof comp.founded === 'number' ? comp.founded : undefined,
+        description: tracxnMatch?.description || (typeof comp.description === 'string' ? comp.description : undefined),
       };
     }).filter(comp => comp.name !== 'Unknown Competitor' || comp.isCurrentBrand);
   } catch (error) {
     console.error('Failed to parse competitors JSON:', error);
-    // Return minimal fallback data
+    
+    // Fallback: use Tracxn data if available
+    if (tracxnCompetitors.length > 0) {
+      const enrichedCompetitors: AnalysisResult['competitors'] = tracxnCompetitors.map((tc, idx) => ({
+        rank: idx + 2, // Reserve rank 1 for current brand
+        name: tc.name,
+        domain: tc.domain,
+        score: Math.round(tc.similarity * 100),
+        marketOverlap: Math.round(tc.similarity * 100),
+        strengths: ['Market presence', 'Industry leader'],
+        isCurrentBrand: false,
+        funding: tc.funding,
+        employees: tc.employees,
+        founded: undefined,
+        description: tc.description,
+      }));
+      
+      // Add current brand at rank 1
+      const currentBrandData = tracxnEnrichment.get(brandInfo.domain);
+      enrichedCompetitors.unshift({
+        rank: 1,
+        name: brandInfo.name,
+        domain: brandInfo.domain,
+        score: 0,
+        marketOverlap: 100,
+        strengths: ['Current analysis target'],
+        isCurrentBrand: true,
+        funding: currentBrandData?.funding?.total,
+        employees: currentBrandData?.employees,
+        founded: currentBrandData?.founded,
+        description: currentBrandData?.description,
+      });
+      
+      return enrichedCompetitors;
+    }
+    
+    // Final fallback
     return [
       {
         rank: 1,
