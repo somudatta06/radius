@@ -38,52 +38,48 @@ export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) 
   return (
     <div className="min-h-screen flex items-center justify-center pt-20 pb-16 px-6 bg-white">
       <div className="max-w-4xl mx-auto text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-sm font-medium border border-gray-300">
-          <span>AI-Powered Visibility Analysis</span>
-        </div>
-
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-black leading-tight">
-          Increase your visibility
-          <br />
+          Be Found in the{" "}
           <span className="relative inline-block">
-            <span className="text-blue-600 underline decoration-blue-600 decoration-2 underline-offset-8">
-              across AI platforms
+            <span className="relative px-6 py-2 text-white bg-gray-200 rounded-[2rem] inline-block" style={{
+              background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%)',
+              boxShadow: 'inset 0 2px 8px rgba(255, 255, 255, 0.15), inset 0 -2px 8px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2)'
+            }}>
+              Age of AI
             </span>
           </span>
+          <span className="text-black">.</span>
         </h1>
 
         <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-          Discover how ChatGPT, Claude, Gemini, and Perplexity perceive your brand. Get actionable insights to boost your AI presence.
+          Advanced GEO targeting and optimization tools that boost your visibility in specific geographic markets
         </p>
 
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-12">
-          <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="relative">
             <Input
               type="text"
-              placeholder="Enter your website URL (e.g., example.com)"
+              placeholder="www.techstartup.io"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isLoading}
-              className="flex-1 border-0 focus-visible:ring-0 text-base h-14 bg-white text-black placeholder:text-gray-400"
+              className="w-full border-0 focus-visible:ring-0 text-base h-16 bg-white text-black placeholder:text-gray-400 pr-16 rounded-full"
+              style={{
+                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)'
+              }}
               data-testid="input-url"
             />
             <Button
               type="submit"
               disabled={isLoading}
-              size="lg"
-              className="gap-2 h-14 px-8 bg-black hover:bg-gray-900 text-white rounded-lg whitespace-nowrap font-semibold"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12 bg-black hover:bg-gray-900 text-white rounded-full"
               data-testid="button-analyze"
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Analyzing...
-                </>
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <>
-                  Get Instant Results
-                  <Search className="h-5 w-5" />
-                </>
+                <Search className="h-5 w-5" />
               )}
             </Button>
           </div>
@@ -92,25 +88,7 @@ export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) 
               {error}
             </p>
           )}
-          <p className="text-sm text-gray-500 mt-4">
-            No credit card required • Free comprehensive analysis • Results in 30 seconds
-          </p>
         </form>
-
-        <div className="flex flex-wrap items-center justify-center gap-8 pt-8">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-gray-700">500+ analyses run</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-black">89%</span>
-            <span className="text-sm text-gray-600">avg improvement</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-black">4</span>
-            <span className="text-sm text-gray-600">AI platforms analyzed</span>
-          </div>
-        </div>
       </div>
     </div>
   );

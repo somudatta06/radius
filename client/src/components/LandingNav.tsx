@@ -14,27 +14,27 @@ export default function LandingNav() {
           </div>
           
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-black transition-colors" data-testid="link-features">
+            <a href="#features" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-features">
               Features
             </a>
-            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-black transition-colors" data-testid="link-pricing">
+            <a href="#pricing" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-pricing">
               Pricing
             </a>
-            <a href="#about" className="text-sm font-medium text-gray-600 hover:text-black transition-colors" data-testid="link-about">
+            <a href="#resources" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-resources">
+              Resources
+            </a>
+            <a href="#about" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-about">
               About
             </a>
           </div>
           
           <div className="flex items-center gap-4">
-            <a href="#login" className="text-sm font-medium text-gray-600 hover:text-black transition-colors" data-testid="button-login">
-              Login
-            </a>
             <Button 
               size="sm" 
               className="bg-black hover:bg-gray-900 text-white rounded-lg px-6"
-              data-testid="button-get-started"
+              data-testid="button-start-free-trial"
             >
-              Get Started
+              Start Free Trial
             </Button>
           </div>
         </div>
