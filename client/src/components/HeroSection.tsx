@@ -164,7 +164,7 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-8 pt-8">
+        <div className="flex flex-wrap items-center justify-center gap-8 pt-8 mt-[-35px] mb-[-35px]">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-sm font-medium text-gray-700">500+ analyses run</span>
