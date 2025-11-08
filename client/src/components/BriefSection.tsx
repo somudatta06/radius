@@ -44,7 +44,7 @@ export function BriefSection({ overallScore, platformScores, brandName, domain }
     <div className="border rounded-lg p-6 bg-card" data-testid="brief-section">
       <div className="flex items-start gap-3">
         <div className="flex-1 space-y-2">
-          <h3 className="text-lg font-semibold">AI Analysis Brief</h3>
+          <h3 className="text-lg font-semibold">Analysis</h3>
           {!hasValidData ? (
             <p className="text-sm text-muted-foreground" data-testid="brief-no-data">
               Insufficient data to generate brief.
