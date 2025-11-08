@@ -5,14 +5,11 @@ import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
 import DashboardHeader from "@/components/DashboardHeader";
 import AnalysisResults from "@/components/AnalysisResults";
-import { AnalysisTimeline } from "@/components/AnalysisTimeline";
-import { useToast } from "@/hooks/use-toast";
 import type { AnalysisResult } from "@shared/schema";
 
 export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [pendingResult, setPendingResult] = useState<AnalysisResult | null>(null);
-  const { toast } = useToast();
 
   const analyzeMutation = useMutation({
     mutationFn: async (url: string) => {
@@ -20,21 +17,13 @@ export default function Home() {
       return await response.json() as AnalysisResult;
     },
     onSuccess: (data) => {
-      // Hold result until timeline completes
+      // Hold result until timeline completes - no popup notifications
       setPendingResult(data);
-      toast({
-        title: "Analysis Complete!",
-        description: `Your website scored ${data.overallScore}/100 across AI platforms.`,
-      });
     },
     onError: (error: Error) => {
-      // Reset timeline on error
+      // Reset timeline on error - no popup notifications
       setPendingResult(null);
-      toast({
-        title: "Analysis Failed",
-        description: error.message || "Failed to analyze website. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Analysis failed:', error.message);
     },
   });
 
@@ -62,10 +51,10 @@ export default function Home() {
     return (
       <>
         <LandingNav />
-        <HeroSection onAnalyze={handleAnalyze} isLoading={analyzeMutation.isPending || !!pendingResult} />
-        <AnalysisTimeline 
-          isActive={analyzeMutation.isPending || !!pendingResult}
-          onComplete={handleTimelineComplete}
+        <HeroSection 
+          onAnalyze={handleAnalyze} 
+          isLoading={analyzeMutation.isPending || !!pendingResult}
+          onTimelineComplete={handleTimelineComplete}
         />
       </>
     );

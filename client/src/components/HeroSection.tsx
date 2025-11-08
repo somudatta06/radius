@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, CheckCircle2, AlertCircle } from "lucide-react";
 import { extractCleanDomain, getUrlError } from "@/lib/urlNormalizer";
+import { AnalysisTimeline } from "@/components/AnalysisTimeline";
 
 interface HeroSectionProps {
   onAnalyze: (url: string) => void;
   isLoading: boolean;
+  onTimelineComplete?: () => void;
 }
 
-export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) {
+export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }: HeroSectionProps) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [processedDomain, setProcessedDomain] = useState("");
@@ -151,6 +153,16 @@ export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) 
             No credit card required • Free comprehensive analysis • Results in 30 seconds
           </p>
         </form>
+
+        {/* Progress Bar - Shows during analysis */}
+        {isLoading && (
+          <div className="mt-8">
+            <AnalysisTimeline 
+              isActive={isLoading}
+              onComplete={onTimelineComplete}
+            />
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-center gap-8 pt-8">
           <div className="flex items-center gap-2">
