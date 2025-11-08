@@ -272,8 +272,8 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       )}
       {activeTab === "competitors" && (
         <div className="space-y-6" data-testid="content-competitors">
-          <h2 className="text-2xl font-bold">Competitor Rankings</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <h2 className="text-2xl font-bold mb-6">Competitor Rankings</h2>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {competitors.map((competitor) => (
               <CompetitorCard 
                 key={competitor.rank} 
