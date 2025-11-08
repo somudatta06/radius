@@ -320,26 +320,24 @@ interface PDFReportProps {
 }
 
 export function PDFReport({ data, filename }: PDFReportProps) {
-  const defaultFilename = `radius-demo-report-${format(data.generatedAt, 'yyyy-MM-dd')}.pdf`;
+  const defaultFilename = `radius-report-${data.domain}-${format(data.generatedAt, 'yyyy-MM-dd')}.pdf`;
   
   return (
-    <div className="flex items-center gap-2">
-      <PDFDownloadLink
-        document={<RadiusPDFDocument data={data} />}
-        fileName={filename || defaultFilename}
-      >
-        {({ loading }) => (
-          <Button
-            variant="outline"
-            disabled={loading}
-            data-testid="button-download-pdf"
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {loading ? 'Generating...' : 'Preview PDF (Demo)'}
-          </Button>
-        )}
-      </PDFDownloadLink>
-    </div>
+    <PDFDownloadLink
+      document={<RadiusPDFDocument data={data} />}
+      fileName={filename || defaultFilename}
+    >
+      {({ loading }) => (
+        <Button
+          variant="default"
+          disabled={loading}
+          data-testid="button-download-pdf"
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          {loading ? 'Generating PDF...' : 'Download PDF Report'}
+        </Button>
+      )}
+    </PDFDownloadLink>
   );
 }

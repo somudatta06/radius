@@ -38,24 +38,24 @@ export interface RecommendedAction {
 export interface QuickWin {
   title: string;
   description: string;
-  impact: 'high';
-  effort: 'low';
+  impact: 'high' | 'medium' | 'low';
+  effort: 'high' | 'medium' | 'low';
   owner: string;
-  expected_outcome?: string;
+  expected_outcome: string;
 }
 
 export interface StrategicBet {
   title: string;
   description: string;
-  impact: 'high';
-  effort: 'med' | 'high';
+  impact: 'high' | 'medium' | 'low';
+  effort: 'high' | 'medium' | 'low';
   owner: string;
   timeline?: string;
-  expected_outcome?: string;
+  expected_outcome: string;
 }
 
 export interface PlatformScore {
-  platform: 'ChatGPT' | 'Claude' | 'Gemini' | 'Perplexity' | 'SearchGPT' | 'Bing';
+  platform: string;
   aic_score: number;
   ces_score: number;
   mts_score: number;
@@ -79,8 +79,8 @@ export interface CompetitorAnalysis {
 }
 
 export interface AccuracyCheck {
-  platform: 'ChatGPT' | 'Claude' | 'Gemini' | 'Perplexity' | 'SearchGPT' | 'Bing';
-  test_queries: TestQuery[];
+  platform: string;
+  test_queries: string[];
   overall_accuracy: number;
   hallucinations: Hallucination[];
   missing_info: string[];

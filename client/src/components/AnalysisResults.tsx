@@ -6,9 +6,19 @@ import CompetitorCard from "@/components/CompetitorCard";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import RecommendationCard from "@/components/RecommendationCard";
 import GapDetectionCard from "@/components/GapDetectionCard";
+import { MetricCard } from "@/components/MetricCard";
+import { CalculationMethodology } from "@/components/CalculationMethodology";
+import { CompetitorDiscovery } from "@/components/CompetitorDiscovery";
+import { CompetitorComparison } from "@/components/CompetitorComparison";
+import { AccuracyIndicator } from "@/components/AccuracyIndicator";
+import { OpenInAIButton } from "@/components/OpenInAIButton";
+import { PDFReport } from "@/components/PDFReport";
+import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
 import type { AnalysisResult } from "@shared/schema";
+import type { ReportData } from "@/lib/geo-types";
+import { format } from 'date-fns';
 
-type Tab = "overview" | "recommendations" | "score-breakdown" | "competitors" | "missing-elements";
+type Tab = "overview" | "recommendations" | "score-breakdown" | "competitors" | "missing-elements" | "methodology" | "discovery" | "accuracy";
 
 interface TabConfig {
   id: Tab;
@@ -20,6 +30,9 @@ const tabs: TabConfig[] = [
   { id: "recommendations", label: "Recommendations" },
   { id: "score-breakdown", label: "Score Breakdown" },
   { id: "competitors", label: "Competitor Analysis" },
+  { id: "methodology", label: "Methodology" },
+  { id: "discovery", label: "Competitor Discovery" },
+  { id: "accuracy", label: "Accuracy Check" },
   { id: "missing-elements", label: "Missing Elements" },
 ];
 
@@ -30,7 +43,10 @@ interface AnalysisResultsProps {
 export default function AnalysisResults({ data }: AnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
-  const { brandInfo, overallScore, platformScores, dimensionScores, competitors, gaps, recommendations } = data;
+  const { 
+    brandInfo, overallScore, platformScores, dimensionScores, competitors, gaps, recommendations,
+    geoMetrics, competitorAnalysis, platformScoreDetails, accuracyChecks, quickWins, strategicBets
+  } = data;
 
   // Extract domain for use in components
   const domain = brandInfo.domain;
@@ -41,12 +57,32 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
   const yourRank = competitors.find(c => c.isCurrentBrand)?.rank || 0;
   const totalCompetitors = competitors.length;
 
+  // Prepare PDF report data (only if GEO data is available)
+  const pdfReportData: ReportData | null = geoMetrics && competitorAnalysis && platformScoreDetails && accuracyChecks ? {
+    websiteUrl: data.url,
+    domain: domain,
+    generatedAt: new Date(),
+    overallScore: geoMetrics.overall,
+    aic: geoMetrics.aic,
+    ces: geoMetrics.ces,
+    mts: geoMetrics.mts,
+    executiveSummary: `Your brand demonstrates ${geoMetrics.overall >= 7 ? 'strong' : geoMetrics.overall >= 5 ? 'moderate' : 'developing'} AI visibility with a GEO score of ${geoMetrics.overall}/10. Focus areas include ${geoMetrics.aic < 6 ? 'content depth,' : ''} ${geoMetrics.ces < 6 ? 'credibility signals,' : ''} ${geoMetrics.mts < 6 ? 'technical optimization' : ''}.`,
+    platforms: platformScoreDetails,
+    competitors: competitorAnalysis,
+    quickWins: quickWins || [],
+    strategicBets: strategicBets || [],
+    accuracyChecks: accuracyChecks,
+  } : null;
+
   return (
     <main className="container mx-auto px-6 py-8 pt-28">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Analysis Results</h1>
-        <p className="text-muted-foreground mt-2">Comprehensive AI visibility analysis for {domain}</p>
+      {/* Header with PDF Export */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Analysis Results</h1>
+          <p className="text-muted-foreground mt-2">Comprehensive AI visibility analysis for {domain}</p>
+        </div>
+        {pdfReportData && <PDFReport data={pdfReportData} />}
       </div>
 
       {/* Liquid Glass Tab Navigation */}
@@ -80,6 +116,35 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       {/* Tab Content */}
       {activeTab === "overview" && (
         <div className="space-y-8" data-testid="content-overview">
+          {/* GEO Metrics */}
+          {geoMetrics && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <MetricCard
+                score={geoMetrics.aic}
+                label="AIC"
+                sublabel="Answerability & Intent Coverage"
+                showInfoButton={true}
+                metricDefinition={METRIC_DEFINITIONS.AIC}
+                metricCode="AIC"
+              />
+              <MetricCard
+                score={geoMetrics.ces}
+                label="CES"
+                sublabel="Credibility, Evidence & Safety"
+                showInfoButton={true}
+                metricDefinition={METRIC_DEFINITIONS.CES}
+                metricCode="CES"
+              />
+              <MetricCard
+                score={geoMetrics.mts}
+                label="MTS"
+                sublabel="Machine-Readability & Technical"
+                showInfoButton={true}
+                metricDefinition={METRIC_DEFINITIONS.MTS}
+                metricCode="MTS"
+              />
+            </div>
+          )}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -110,6 +175,35 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
             />
           </div>
 
+          {/* Test in AI Platforms */}
+          <div className="border rounded-lg p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Test Your Visibility Live</h3>
+            <p className="text-sm text-muted-foreground">
+              See how AI platforms respond to queries about your brand right now
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <OpenInAIButton
+                platform="ChatGPT"
+                query={`What are the top companies in the ${brandInfo.industry || 'industry'} space?`}
+                context={{ brandName: brandInfo.name }}
+              />
+              <OpenInAIButton
+                platform="Claude"
+                query={`Compare the leading solutions for ${brandInfo.industry || 'this category'}`}
+                context={{ brandName: brandInfo.name }}
+              />
+              <OpenInAIButton
+                platform="Perplexity"
+                query={`Who are the main competitors of ${brandInfo.name}?`}
+                context={{ brandName: brandInfo.name }}
+              />
+              <OpenInAIButton
+                platform="Gemini"
+                query={`What is ${brandInfo.name}?`}
+                context={{ brandName: brandInfo.name }}
+              />
+            </div>
+          </div>
 
           {/* Platform Comparison */}
           <div>
@@ -168,6 +262,35 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
         </div>
       )}
 
+      {activeTab === "methodology" && (
+        <div className="space-y-6" data-testid="content-methodology">
+          <CalculationMethodology />
+        </div>
+      )}
+
+      {activeTab === "discovery" && (
+        <div className="space-y-6" data-testid="content-discovery">
+          <CompetitorDiscovery />
+          {competitorAnalysis && competitorAnalysis.length > 1 && (
+            <CompetitorComparison
+              userBrand={competitorAnalysis[0]}
+              competitors={competitorAnalysis.slice(1)}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTab === "accuracy" && (
+        <div className="space-y-6" data-testid="content-accuracy">
+          {accuracyChecks && accuracyChecks.length > 0 ? (
+            <AccuracyIndicator accuracyChecks={accuracyChecks} />
+          ) : (
+            <div className="text-center text-muted-foreground py-12">
+              No accuracy check data available
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === "missing-elements" && (
         <div className="space-y-6" data-testid="content-missing-elements">

@@ -63,6 +63,72 @@ export const insertAnalysisResultSchema = createInsertSchema(analysisResults).om
 export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
 export type AnalysisResultRow = typeof analysisResults.$inferSelect;
 
+// GEO Metrics Schemas
+export const geoMetricsSchema = z.object({
+  aic: z.number().min(0).max(10),
+  ces: z.number().min(0).max(10),
+  mts: z.number().min(0).max(10),
+  overall: z.number().min(0).max(10),
+});
+
+export const competitorAnalysisSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  discovery_score: z.number().min(0).max(10),
+  comparison_score: z.number().min(0).max(10),
+  utility_score: z.number().min(0).max(10),
+  overall_geo_score: z.number().min(0).max(10),
+  mention_frequency: z.number().min(0).max(100),
+  citation_rate: z.number().min(0).max(100),
+  head_to_head_wins: z.number().min(0).max(100),
+  key_differentiators: z.array(z.string()),
+});
+
+export const hallucinationSchema = z.object({
+  claim: z.string(),
+  reason: z.string(),
+  severity: z.enum(['low', 'medium', 'high']),
+});
+
+export const accuracyCheckSchema = z.object({
+  platform: z.string(),
+  test_queries: z.array(z.string()),
+  overall_accuracy: z.number().min(0).max(100),
+  hallucinations: z.array(hallucinationSchema),
+  missing_info: z.array(z.string()),
+  correct_facts: z.array(z.string()),
+});
+
+export const quickWinSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  impact: z.enum(['low', 'medium', 'high']),
+  effort: z.enum(['low', 'medium', 'high']),
+  owner: z.string(),
+  expected_outcome: z.string(),
+});
+
+export const strategicBetSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  impact: z.enum(['low', 'medium', 'high']),
+  effort: z.enum(['low', 'medium', 'high']),
+  owner: z.string(),
+  timeline: z.string().optional(),
+  expected_outcome: z.string(),
+});
+
+export const platformScoreDetailSchema = z.object({
+  platform: z.string(),
+  aic_score: z.number().min(0).max(10),
+  ces_score: z.number().min(0).max(10),
+  mts_score: z.number().min(0).max(10),
+  overall_score: z.number().min(0).max(10),
+  analysis: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+});
+
 // Analysis Result Schema
 export const analysisResultSchema = z.object({
   url: z.string().url(),
@@ -109,6 +175,19 @@ export const analysisResultSchema = z.object({
     actionItems: z.array(z.string()),
     estimatedImpact: z.string(),
   })),
+  // GEO Features
+  geoMetrics: geoMetricsSchema.optional(),
+  competitorAnalysis: z.array(competitorAnalysisSchema).optional(),
+  platformScoreDetails: z.array(platformScoreDetailSchema).optional(),
+  accuracyChecks: z.array(accuracyCheckSchema).optional(),
+  quickWins: z.array(quickWinSchema).optional(),
+  strategicBets: z.array(strategicBetSchema).optional(),
 });
 
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
+export type GEOMetrics = z.infer<typeof geoMetricsSchema>;
+export type CompetitorAnalysis = z.infer<typeof competitorAnalysisSchema>;
+export type AccuracyCheck = z.infer<typeof accuracyCheckSchema>;
+export type QuickWin = z.infer<typeof quickWinSchema>;
+export type StrategicBet = z.infer<typeof strategicBetSchema>;
+export type PlatformScoreDetail = z.infer<typeof platformScoreDetailSchema>;
