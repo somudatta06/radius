@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthModal } from "@/components/AuthModal";
+import { NavbarTypingText } from "@/components/NavbarTypingText";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -81,6 +82,11 @@ export default function LandingNav() {
               <Circle className="h-4 w-4 text-white" />
             </div>
             <span className="text-lg font-bold text-black">Radius</span>
+          </div>
+          
+          {/* Center: Typing Animation - Hidden on mobile, visible on desktop */}
+          <div className="hidden md:flex flex-1 justify-center px-8 max-w-md mx-auto">
+            <NavbarTypingText />
           </div>
           
           {/* Action Buttons */}
