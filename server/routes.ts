@@ -9,10 +9,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/analyze - Analyze a website URL
   app.post("/api/analyze", async (req, res) => {
     try {
-      const { url } = req.body;
+      let { url } = req.body;
 
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL is required' });
+      }
+
+      // Normalize URL: add https:// if no protocol is present
+      // This allows users to submit "example.com" instead of requiring "https://example.com"
+      if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
       }
 
       // Check if we have a cached analysis
