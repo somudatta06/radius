@@ -5,7 +5,7 @@ import PlatformComparison from "@/components/PlatformComparison";
 import CompetitorCard from "@/components/CompetitorCard";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import RecommendationCard from "@/components/RecommendationCard";
-import GapDetectionCard from "@/components/GapDetectionCard";
+import { MissingElementsCard } from "@/components/MissingElementsCard";
 import { MetricCard } from "@/components/MetricCard";
 import { CalculationMethodology } from "@/components/CalculationMethodology";
 import { CompetitorDiscovery } from "@/components/CompetitorDiscovery";
@@ -18,7 +18,7 @@ import type { AnalysisResult } from "@shared/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "recommendations" | "score-breakdown" | "competitors" | "missing-elements" | "methodology" | "discovery" | "accuracy";
+type Tab = "overview" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
 
 interface TabConfig {
   id: Tab;
@@ -33,7 +33,6 @@ const tabs: TabConfig[] = [
   { id: "methodology", label: "Methodology" },
   { id: "discovery", label: "Competitor Discovery" },
   { id: "accuracy", label: "Accuracy Check" },
-  { id: "missing-elements", label: "Missing Elements" },
 ];
 
 interface AnalysisResultsProps {
@@ -212,6 +211,16 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       {activeTab === "recommendations" && (
         <div className="space-y-6" data-testid="content-recommendations">
           <h2 className="text-2xl font-bold">AI-Generated Recommendations</h2>
+          <p className="text-muted-foreground">
+            Actionable insights to improve your AI visibility and platform performance
+          </p>
+          
+          {/* Missing Elements Card - Always First */}
+          {gaps && gaps.length > 0 && (
+            <MissingElementsCard gaps={gaps} />
+          )}
+
+          {/* Recommendations Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {recommendations.map((rec, idx: number) => (
               <RecommendationCard 
@@ -281,12 +290,6 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
               No accuracy check data available
             </div>
           )}
-        </div>
-      )}
-      {activeTab === "missing-elements" && (
-        <div className="space-y-6" data-testid="content-missing-elements">
-          <h2 className="text-2xl font-bold">Missing Elements Detected</h2>
-          <GapDetectionCard gaps={gaps} />
         </div>
       )}
     </main>
