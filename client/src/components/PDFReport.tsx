@@ -23,11 +23,12 @@ const styles = StyleSheet.create({
     marginTop: 100
   },
   mainTitle: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#000000',
-    letterSpacing: -1
+    letterSpacing: -0.5,
+    lineHeight: 1.2
   },
   coverSubtitle: {
     fontSize: 20,
