@@ -23,10 +23,13 @@ Preferred communication style: Simple, everyday language.
 - **Color Palette**: Black (#000000) primary, white (#FFFFFF) background, gray (#6B7280) text, blue (#3B82F6) accent
 - **Path Aliases**: Configured for clean imports (`@/components`, `@/lib`, `@/hooks`, `@shared`)
 
-**Landing Page Design** (November 2025 Redesign):
-- **Navigation**: Black circular logo icon, gray nav links, black CTA button
-- **Hero Section**: Large black headline with blue underlined accent on "across AI platforms"
-- **Search Component**: White input with subtle shadow, black "Get Instant Results" button
+**Landing Page Design** (November 2025 Redesign - GEOoptimize Style):
+- **Navigation**: Black circular logo icon, plain gray nav links (Features, Pricing, Resources, About), black "Start Free Trial" button
+- **Hero Section**: 
+  - Headline: "Be Found in the Age of AI." with black liquid glass highlight on "Age of AI" (white text on glossy black pill background)
+  - Sub-headline: "Advanced GEO targeting and optimization tools that boost your visibility in specific geographic markets"
+  - No badge, no metrics section
+- **Search Component**: White rounded-full input with "www.techstartup.io" placeholder, circular black search icon button positioned inside on the right
 - **Visual Style**: Clean, minimalist, professional with high contrast and generous whitespace
 
 **State Management**:
