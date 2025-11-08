@@ -1,10 +1,10 @@
-import { Target, Star, Award } from 'lucide-react';
+import { Target, Star, Award, Lightbulb, BarChart3, CheckCircle, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FeatureCardProps {
   title: string;
   description: string;
-  visualization: 'chart' | 'bars' | 'table' | 'mentions';
+  visualization: 'chart' | 'recommendations' | 'table' | 'download-report';
 }
 
 const FeatureCard = ({ title, description, visualization, animationDelay }: FeatureCardProps & { animationDelay?: string }) => {
@@ -20,9 +20,9 @@ const FeatureCard = ({ title, description, visualization, animationDelay }: Feat
       </div>
       <div className="relative aspect-[16/9] bg-muted/30 rounded-xl overflow-hidden border border-border">
         {visualization === 'chart' && <ChartVisualization />}
-        {visualization === 'bars' && <BarsVisualization />}
+        {visualization === 'recommendations' && <RecommendationsVisualization />}
         {visualization === 'table' && <TableVisualization />}
-        {visualization === 'mentions' && <MentionsVisualization />}
+        {visualization === 'download-report' && <DownloadReportVisualization />}
         
         <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-all duration-300" />
       </div>
@@ -54,21 +54,62 @@ const ChartVisualization = () => (
   </div>
 );
 
-const BarsVisualization = () => (
-  <div className="w-full h-full flex items-end justify-around p-8 gap-3">
+const RecommendationsVisualization = () => (
+  <div className="w-full h-full p-6 flex flex-col justify-center gap-3">
     {[
-      { height: '75%', intensity: 'primary', label: 'Twitter 39%' },
-      { height: '90%', intensity: 'primary', label: 'YouTube 29%' },
-      { height: '45%', intensity: 'muted', label: 'Wiki 15%' },
-      { height: '60%', intensity: 'muted', label: 'LinkedIn' },
-      { height: '55%', intensity: 'muted', label: 'Other' },
-    ].map((bar, index) => (
-      <div key={index} className="flex-1 flex flex-col items-center gap-2">
-        <div
-          className={`w-full ${bar.intensity === 'primary' ? 'bg-primary/60' : 'bg-muted-foreground/30'} rounded-t-lg transition-all duration-700`}
-          style={{ height: bar.height }}
-        />
-        <span className="text-xs text-muted-foreground text-center truncate w-full">{bar.label}</span>
+      {
+        Icon: Lightbulb,
+        title: 'Implement FAQ Section',
+        impact: 'HIGH',
+        impactBg: 'bg-foreground',
+        impactText: 'text-background',
+        points: '+8-10 pts'
+      },
+      {
+        Icon: BarChart3,
+        title: 'Create Comparison Pages',
+        impact: 'HIGH',
+        impactBg: 'bg-foreground',
+        impactText: 'text-background',
+        points: '+7-9 pts'
+      },
+      {
+        Icon: Star,
+        title: 'Add Customer Testimonials',
+        impact: 'MED',
+        impactBg: 'bg-muted-foreground',
+        impactText: 'text-background',
+        points: '+5-7 pts'
+      },
+      {
+        Icon: CheckCircle,
+        title: 'Enhance Pricing Clarity',
+        impact: 'MED',
+        impactBg: 'bg-muted-foreground',
+        impactText: 'text-background',
+        points: '+4-6 pts'
+      },
+    ].map((item, index) => (
+      <div
+        key={index}
+        className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover-elevate transition-all group"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <item.Icon className="w-5 h-5 text-primary flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {item.title}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`text-xs px-2 py-1 rounded-full font-bold ${item.impactBg} ${item.impactText}`}>
+            {item.impact}
+          </span>
+          <span className="text-xs font-semibold text-primary">
+            {item.points}
+          </span>
+        </div>
       </div>
     ))}
   </div>
@@ -107,25 +148,44 @@ const TableVisualization = () => (
   </div>
 );
 
-const MentionsVisualization = () => (
-  <div className="w-full h-full p-6 flex flex-col justify-center gap-4">
-    {[
-      { position: '1st', color: 'bg-primary', width: '85%', Icon: Target },
-      { position: '2nd', color: 'bg-primary/70', width: '70%', Icon: Star },
-      { position: '3rd', color: 'bg-muted-foreground/50', width: '60%', Icon: Award },
-    ].map((item, index) => (
-      <div key={index} className="flex items-center gap-3">
-        <item.Icon className="w-6 h-6 text-primary" />
-        <div className="flex-1 bg-muted/50 rounded-full h-8 overflow-hidden">
-          <div
-            className={`h-full ${item.color} rounded-full flex items-center justify-end px-3 transition-all duration-700`}
-            style={{ width: item.width }}
-          >
-            <span className="text-xs font-bold text-primary-foreground">#{item.position} position</span>
+const DownloadReportVisualization = () => (
+  <div className="w-full h-full flex items-center justify-center p-6">
+    <div className="text-center space-y-6">
+      <div className="relative inline-block">
+        <div className="w-32 h-40 bg-card border-2 border-border rounded-lg shadow-lg transform rotate-3 absolute -top-4 -right-4 opacity-30" />
+        <div className="w-32 h-40 bg-card border-2 border-border rounded-lg shadow-lg transform -rotate-2 absolute -top-2 -right-2 opacity-50" />
+        <div className="w-32 h-40 bg-card border-2 border-foreground rounded-lg shadow-xl relative overflow-hidden">
+          <div className="p-3 space-y-2">
+            <div className="h-3 bg-foreground rounded w-3/4" />
+            <div className="h-2 bg-muted-foreground/30 rounded w-full" />
+            <div className="h-2 bg-muted-foreground/30 rounded w-5/6" />
+            <div className="h-2 bg-muted-foreground/30 rounded w-full" />
+            <div className="mt-4 h-16 bg-muted/30 rounded" />
+            <div className="h-2 bg-muted-foreground/30 rounded w-2/3" />
+          </div>
+          <div className="absolute bottom-2 right-2 bg-foreground text-background text-xs px-2 py-1 rounded font-bold">
+            PDF
           </div>
         </div>
       </div>
-    ))}
+
+      <div className="flex justify-center gap-6 text-xs">
+        <div className="text-center">
+          <div className="font-bold text-foreground text-lg">20+</div>
+          <div className="text-muted-foreground">Pages</div>
+        </div>
+        <div className="w-px bg-border" />
+        <div className="text-center">
+          <div className="font-bold text-foreground text-lg">100+</div>
+          <div className="text-muted-foreground">Insights</div>
+        </div>
+        <div className="w-px bg-border" />
+        <div className="text-center">
+          <div className="font-bold text-foreground text-lg">4</div>
+          <div className="text-muted-foreground">Platforms</div>
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -137,9 +197,9 @@ export const FeaturesSection = () => {
       visualization: 'chart' as const,
     },
     {
-      title: 'Sources',
-      description: 'Understand which sources have the highest impact on your AI visibility and rankings.',
-      visualization: 'bars' as const,
+      title: 'AI-Generated Recommendations',
+      description: 'Get personalized, actionable insights ranked by impact to boost your AI visibility scores.',
+      visualization: 'recommendations' as const,
     },
     {
       title: 'Competitor Tracking',
@@ -147,9 +207,9 @@ export const FeaturesSection = () => {
       visualization: 'table' as const,
     },
     {
-      title: 'Recent Mentions',
-      description: 'Track and follow conversations where you are mentioned across AI platforms in real-time.',
-      visualization: 'mentions' as const,
+      title: 'Download Comprehensive Report',
+      description: 'Export a detailed PDF report with all metrics, insights, and recommendations for your team.',
+      visualization: 'download-report' as const,
     },
   ];
 
