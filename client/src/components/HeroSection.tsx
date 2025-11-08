@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 interface HeroSectionProps {
   onAnalyze: (url: string) => void;
@@ -36,74 +36,63 @@ export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center pt-20 pb-16 px-6 relative overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-chart-3/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-      </div>
-
-      <div className="absolute top-32 right-20 hidden lg:block">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-lg" />
-          <div className="relative bg-card border-2 border-primary/30 rounded-lg p-3 rotate-12 hover:rotate-6 transition-transform">
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
-          <Sparkles className="h-4 w-4" />
+    <div className="min-h-screen flex items-center justify-center pt-20 pb-16 px-6 bg-white">
+      <div className="max-w-4xl mx-auto text-center space-y-8">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-sm font-medium border border-gray-300">
           <span>AI-Powered Visibility Analysis</span>
         </div>
 
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-black leading-tight">
           Increase your visibility
           <br />
-          <span className="text-primary">across AI platforms</span>
+          <span className="relative inline-block">
+            <span className="text-blue-600 underline decoration-blue-600 decoration-2 underline-offset-8">
+              across AI platforms
+            </span>
+          </span>
         </h1>
 
-        <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
           Discover how ChatGPT, Claude, Gemini, and Perplexity perceive your brand. Get actionable insights to boost your AI presence.
         </p>
 
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-3 p-2 bg-card rounded-2xl shadow-2xl border-2">
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-12">
+          <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white rounded-xl shadow-lg border border-gray-200">
             <Input
               type="text"
               placeholder="Enter your website URL (e.g., example.com)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isLoading}
-              className="flex-1 border-0 focus-visible:ring-0 text-base h-12 bg-transparent"
+              className="flex-1 border-0 focus-visible:ring-0 text-base h-14 bg-white text-black placeholder:text-gray-400"
               data-testid="input-url"
             />
             <Button
               type="submit"
               disabled={isLoading}
               size="lg"
-              className="gap-2 h-12 px-8 whitespace-nowrap"
+              className="gap-2 h-14 px-8 bg-black hover:bg-gray-900 text-white rounded-lg whitespace-nowrap font-semibold"
               data-testid="button-analyze"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   Analyzing...
                 </>
               ) : (
                 <>
                   Get Instant Results
-                  <ArrowRight className="h-4 w-4" />
+                  <Search className="h-5 w-5" />
                 </>
               )}
             </Button>
           </div>
           {error && (
-            <p className="text-sm text-destructive mt-2 text-left" data-testid="text-error">
+            <p className="text-sm text-red-600 mt-2 text-left" data-testid="text-error">
               {error}
             </p>
           )}
-          <p className="text-sm text-muted-foreground mt-4">
+          <p className="text-sm text-gray-500 mt-4">
             No credit card required • Free comprehensive analysis • Results in 30 seconds
           </p>
         </form>
@@ -111,15 +100,15 @@ export default function HeroSection({ onAnalyze, isLoading }: HeroSectionProps) 
         <div className="flex flex-wrap items-center justify-center gap-8 pt-8">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium">500+ analyses run</span>
+            <span className="text-sm font-medium text-gray-700">500+ analyses run</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary">89%</span>
-            <span className="text-sm text-muted-foreground">avg improvement</span>
+            <span className="text-2xl font-bold text-black">89%</span>
+            <span className="text-sm text-gray-600">avg improvement</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary">4</span>
-            <span className="text-sm text-muted-foreground">AI platforms analyzed</span>
+            <span className="text-2xl font-bold text-black">4</span>
+            <span className="text-sm text-gray-600">AI platforms analyzed</span>
           </div>
         </div>
       </div>
