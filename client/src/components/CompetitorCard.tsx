@@ -89,6 +89,15 @@ export default function CompetitorCard({
                 )}
               </div>
 
+              {description && (
+                <div className="mb-3">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Description:</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-competitor-description-${rank}`}>
+                    {description}
+                  </p>
+                </div>
+              )}
+
               {strengths.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground font-medium">Key Strengths:</p>
