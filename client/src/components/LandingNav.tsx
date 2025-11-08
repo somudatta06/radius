@@ -86,19 +86,6 @@ export default function LandingNav() {
           {/* Center Navigation Links */}
           <div className="hidden md:flex items-center gap-2 flex-1 justify-center">
             <a 
-              href="#pricing" 
-              className="
-                px-5 py-2.5 rounded-xl
-                text-sm font-medium text-gray-600
-                transition-all duration-300
-                hover:text-black hover:bg-black/5
-                active-elevate-2
-              " 
-              data-testid="link-pricing"
-            >
-              Pricing
-            </a>
-            <a 
               href="#about" 
               className="
                 px-5 py-2.5 rounded-xl
