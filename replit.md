@@ -36,8 +36,10 @@ Key data schemas include `User`, `Session`, `DomainHistory`, and `AnalysisResult
 *   **PDF Generation**: `@react-pdf/renderer`, `jspdf`, `html2canvas`.
 
 ## Recent Updates (November 2025)
-### Comprehensive Metrics Documentation & PDF Reporting System
-Added extensive GEO (Generative Engine Optimization) metrics documentation system with the following features:
+### Comprehensive GEO Metrics System - Components Built (Backend Integration Pending)
+Created complete frontend components for an advanced GEO (Generative Engine Optimization) metrics system. **Note: These features are currently gated and not visible in the production application until backend integration is complete.** All components are production-ready and saved in the codebase at:
+
+**Current Status:** ✅ Frontend components complete | ⏳ Backend integration needed
 
 1. **Interactive Metrics Documentation**
    - InfoButton component with tooltips and detailed modal explanations for every metric
@@ -81,8 +83,42 @@ Added extensive GEO (Generative Engine Optimization) metrics documentation syste
 *   `client/src/components/AccuracyIndicator.tsx` - LLM accuracy verification display
 *   `client/src/components/PDFReport.tsx` - PDF report generation and download
 
-### Enhanced Features
-*   AnalysisResults component now includes 8 tabs: Overview, Recommendations, Score Breakdown, Competitor Analysis, Methodology, How We Find Competitors, Accuracy Check, and Missing Elements
-*   All metrics now have interactive info buttons with detailed explanations
-*   Scoring anchors clearly defined: 0-2 (Critical), 2-4 (Weak), 4-6 (Adequate), 6-8 (Strong), 8-10 (Outstanding)
-*   GEO score calculation: Final Score = (AIC × 0.40) + (CES × 0.35) + (MTS × 0.25)
+### Next Steps for Backend Integration
+To enable these GEO features in production, the following backend work is required:
+
+1. **Extend AnalysisResult Schema** (`shared/schema.ts`):
+   ```typescript
+   // Add to AnalysisResult type:
+   geoMetrics: {
+     aic: number;
+     ces: number;
+     mts: number;
+     overall: number;
+   };
+   competitorAnalysis: CompetitorAnalysis[];
+   accuracyChecks: AccuracyCheck[];
+   quickWins: QuickWin[];
+   strategicBets: StrategicBet[];
+   ```
+
+2. **Update Analysis Service** (`server/services/analyzer.ts`):
+   - Calculate AIC, CES, MTS scores from scraped data
+   - Generate competitor comparison metrics
+   - Implement LLM accuracy verification
+   - Generate quick wins and strategic bets
+
+3. **Update Storage Layer** (`server/storage.ts`):
+   - Store GEO metrics in database
+   - Persist competitor analysis results
+   - Save accuracy check results
+
+4. **Enable Frontend Components** (`client/src/components/AnalysisResults.tsx`):
+   - Uncomment GEO component imports
+   - Add Methodology, Discovery, and Accuracy tabs back to navigation
+   - Connect components to real `AnalysisResult` data instead of mock data
+   - Re-enable PDF export with real data
+
+### Current Production Features
+*   AnalysisResults component includes 5 tabs: Overview, Recommendations, Score Breakdown, Competitor Analysis, and Missing Elements
+*   All features display real analysis data from the backend
+*   No mock or placeholder data in production
