@@ -19,8 +19,15 @@ Preferred communication style: Simple, everyday language.
 **UI Component System**:
 - **shadcn/ui** component library (Radix UI primitives with custom styling)
 - **Tailwind CSS** for utility-first styling with custom design tokens
-- **Design System**: "New York" variant with Inter font family, neutral base color, and HSL-based theming
+- **Design System**: Minimalist black and white aesthetic with strategic blue accent
+- **Color Palette**: Black (#000000) primary, white (#FFFFFF) background, gray (#6B7280) text, blue (#3B82F6) accent
 - **Path Aliases**: Configured for clean imports (`@/components`, `@/lib`, `@/hooks`, `@shared`)
+
+**Landing Page Design** (November 2025 Redesign):
+- **Navigation**: Black circular logo icon, gray nav links, black CTA button
+- **Hero Section**: Large black headline with blue underlined accent on "across AI platforms"
+- **Search Component**: White input with subtle shadow, black "Get Instant Results" button
+- **Visual Style**: Clean, minimalist, professional with high contrast and generous whitespace
 
 **State Management**:
 - **TanStack Query (React Query)** for server state management and API caching
