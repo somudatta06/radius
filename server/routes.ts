@@ -3,29 +3,45 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWebsite } from "./services/analyzer";
 import { analysisResultSchema } from "@shared/schema";
+import authRoutes from "./routes/auth";
+import historyRoutes from "./routes/history";
+import { optionalAuth, type AuthenticatedRequest } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Register auth routes
+  app.use("/api/auth", authRoutes);
+  app.use("/api/history", historyRoutes);
+  
   // POST /api/analyze - Analyze a website URL
-  app.post("/api/analyze", async (req, res) => {
+  app.post("/api/analyze", optionalAuth, async (req, res) => {
     try {
       let { url } = req.body;
+      const userId = (req as AuthenticatedRequest).userId;
 
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL is required' });
       }
 
       // Normalize URL: add https:// if no protocol is present
-      // This allows users to submit "example.com" instead of requiring "https://example.com"
       if (!url.match(/^https?:\/\//i)) {
         url = 'https://' + url;
       }
 
-      // Check if we have a cached analysis
-      const cached = await storage.getAnalysis(url);
-      if (cached) {
-        console.log('Returning cached analysis for:', url);
-        return res.json(cached);
+      // Extract normalized URL for caching (remove protocol, trailing slash, www)
+      const normalizedUrl = url
+        .replace(/^https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .replace(/\/$/, '')
+        .toLowerCase();
+
+      // For authenticated users, check 24h cache
+      if (userId) {
+        const recentAnalysis = await storage.getRecentAnalysis(userId, normalizedUrl);
+        if (recentAnalysis) {
+          console.log('Returning cached analysis (< 24h) for user:', userId, normalizedUrl);
+          return res.json(recentAnalysis);
+        }
       }
 
       // Perform analysis
@@ -41,8 +57,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         brandCompetitor.score = validated.overallScore;
       }
 
-      // Save to storage
-      await storage.saveAnalysis(validated);
+      // For authenticated users, save to domain history
+      if (userId) {
+        const historyEntry = await storage.saveDomainHistory({
+          userId,
+          domain: validated.brandInfo.domain || normalizedUrl,
+          normalizedUrl,
+          aiVisibilityScore: validated.overallScore,
+          status: 'completed',
+        });
+
+        await storage.saveAnalysisResult({
+          domainHistoryId: historyEntry.id,
+          analysisData: validated,
+        });
+
+        console.log('Saved analysis to domain history for user:', userId);
+      }
 
       res.json(validated);
     } catch (error) {

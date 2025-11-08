@@ -1,0 +1,1052 @@
+You're about to implement a world-class authentication system with intelligent domain tracking. This is the core user experience that will make GeoPulse indispensable for businesses tracking their AI visibility.
+
+## 🎯 THE MISSION
+Build a seamless authentication flow with automatic domain history tracking, creating a personalized dashboard where users can see all their analyzed domains, track improvements over time, and quickly re-analyze sites.
+
+## 📋 COMPLETE SYSTEM ARCHITECTURE
+
+### PART 1: AUTHENTICATION FLOW
+
+### 1. USER JOURNEY MAP
+Landing Page → Click "Get Started" or "Login"
+↓
+Auth Modal/Page → Sign up/Sign in
+↓
+Authenticated → Redirect to Dashboard
+↓
+Enter Domain → Auto-save to history
+↓
+View Analysis → Track in user profile
+↓
+Access History → Quick re-analyze any domain
+
+### 2. AUTHENTICATION IMPLEMENTATION
+
+**Auth Setup (using Supabase/Firebase/Auth0 - choose based on your stack):**
+```javascript
+// lib/auth.js
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
+
+export const authService = {
+  // Sign Up
+  async signUp(email, password, name) {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            created_at: new Date().toISOString(),
+            plan: 'free', // Default plan
+            domains_analyzed: 0
+          }
+        }
+      })
+      
+      if (error) throw error
+      
+      // Create user profile in database
+      if (data.user) {
+        await this.createUserProfile(data.user.id, { email, name })
+      }
+      
+      return { success: true, user: data.user }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Sign In
+  async signIn(email, password) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      
+      if (error) throw error
+      
+      // Log sign in event
+      await this.logUserActivity(data.user.id, 'sign_in')
+      
+      return { success: true, user: data.user }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Sign Out
+  async signOut() {
+    const { error } = await supabase.auth.signOut()
+    if (!error) {
+      window.location.href = '/'
+    }
+  },
+
+  // Get Current User
+  async getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
+  },
+
+  // Create User Profile
+  async createUserProfile(userId, userData) {
+    const { error } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        ...userData,
+        created_at: new Date().toISOString()
+      })
+    
+    if (error) console.error('Profile creation error:', error)
+  }
+}
+```
+
+### 3. AUTHENTICATION UI COMPONENTS
+
+**Modern Auth Modal:**
+```javascript
+// components/AuthModal.jsx
+import { useState } from 'react'
+import { authService } from '@/lib/auth'
+
+export default function AuthModal({ isOpen, onClose, mode = 'signin' }) {
+  const [authMode, setAuthMode] = useState(mode)
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: ''
+  })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      let result
+      if (authMode === 'signup') {
+        result = await authService.signUp(
+          formData.email,
+          formData.password,
+          formData.name
+        )
+      } else {
+        result = await authService.signIn(
+          formData.email,
+          formData.password
+        )
+      }
+
+      if (result.success) {
+        // Show success message
+        showToast('Welcome to GeoPulse!', 'success')
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 1000)
+      } else {
+        showToast(result.error, 'error')
+      }
+    } catch (error) {
+      showToast('Something went wrong', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className={`modal-overlay ${isOpen ? 'active' : ''}`}>
+      <div className="auth-modal">
+        <button className="close-btn" onClick={onClose}>×</button>
+        
+        <div className="auth-header">
+          <h2>{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
+          <p>
+            {authMode === 'signup' 
+              ? 'Start tracking your AI visibility across all platforms'
+              : 'Continue optimizing your AI presence'
+            }
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {authMode === 'signup' && (
+            <input
+              type="text"
+              placeholder="Your Name"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              required
+              className="auth-input"
+            />
+          )}
+          
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            required
+            className="auth-input"
+          />
+          
+          <input
+            type="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            required
+            minLength="8"
+            className="auth-input"
+          />
+
+          <button type="submit" disabled={loading} className="auth-submit-btn">
+            {loading ? (
+              <span className="loading-spinner">Processing...</span>
+            ) : (
+              authMode === 'signup' ? 'Create Account' : 'Sign In'
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <p>
+            {authMode === 'signup' ? 'Already have an account?' : "Don't have an account?"}
+            <button 
+              onClick={() => setAuthMode(authMode === 'signup' ? 'signin' : 'signup')}
+              className="auth-switch-btn"
+            >
+              {authMode === 'signup' ? 'Sign In' : 'Sign Up'}
+            </button>
+          </p>
+        </div>
+
+        {/* Social Auth Options */}
+        <div className="social-auth">
+          <div className="divider">OR</div>
+          <button className="social-btn google">
+            Continue with Google
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+**Auth Modal Styling:**
+```css
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.auth-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #000;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+```
+
+### PART 2: DOMAIN HISTORY SYSTEM
+
+### 4. DATABASE SCHEMA
+```sql
+-- Users Table
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW(),
+  plan VARCHAR(50) DEFAULT 'free',
+  domains_analyzed INTEGER DEFAULT 0
+);
+
+-- Domain History Table
+CREATE TABLE domain_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  domain VARCHAR(255) NOT NULL,
+  analyzed_at TIMESTAMP DEFAULT NOW(),
+  analysis_data JSONB,
+  ai_visibility_score INTEGER,
+  improvements_found INTEGER,
+  status VARCHAR(50) DEFAULT 'completed',
+  INDEX idx_user_domains (user_id, analyzed_at DESC)
+);
+
+-- Analysis Results Table
+CREATE TABLE analysis_results (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain_history_id UUID REFERENCES domain_history(id),
+  platform VARCHAR(50), -- 'chatgpt', 'claude', 'gemini', 'perplexity'
+  visibility_score INTEGER,
+  recommendations JSONB,
+  analyzed_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 5. DOMAIN TRACKING SERVICE
+```javascript
+// lib/domainHistory.js
+export const domainHistoryService = {
+  // Save domain to history when analyzed
+  async saveDomain(userId, domain, analysisData) {
+    try {
+      const { data, error } = await supabase
+        .from('domain_history')
+        .insert({
+          user_id: userId,
+          domain: domain,
+          analysis_data: analysisData,
+          ai_visibility_score: analysisData.overallScore,
+          improvements_found: analysisData.improvements.length,
+          status: 'completed'
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Save individual platform results
+      if (data && analysisData.platforms) {
+        await this.savePlatformResults(data.id, analysisData.platforms)
+      }
+
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error saving domain:', error)
+      return { success: false, error }
+    }
+  },
+
+  // Get user's domain history
+  async getUserDomains(userId, limit = 20, offset = 0) {
+    try {
+      const { data, error, count } = await supabase
+        .from('domain_history')
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId)
+        .order('analyzed_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) throw error
+
+      return { 
+        success: true, 
+        domains: data, 
+        total: count,
+        hasMore: count > offset + limit
+      }
+    } catch (error) {
+      return { success: false, error }
+    }
+  },
+
+  // Quick re-analyze
+  async reanalyzeDomain(userId, domain) {
+    // Check if domain was analyzed recently (within 24 hours)
+    const { data: recent } = await supabase
+      .from('domain_history')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('domain', domain)
+      .gte('analyzed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .single()
+
+    if (recent) {
+      return {
+        success: true,
+        data: recent,
+        cached: true,
+        message: 'Using recent analysis (less than 24 hours old)'
+      }
+    }
+
+    // Perform new analysis
+    return this.analyzeDomain(domain, userId)
+  },
+
+  // Search domains
+  async searchDomains(userId, searchTerm) {
+    const { data, error } = await supabase
+      .from('domain_history')
+      .select('*')
+      .eq('user_id', userId)
+      .ilike('domain', `%${searchTerm}%`)
+      .order('analyzed_at', { ascending: false })
+      .limit(10)
+
+    return { success: !error, data, error }
+  }
+}
+```
+
+### 6. DASHBOARD WITH DOMAIN HISTORY
+```javascript
+// pages/dashboard.jsx
+import { useState, useEffect } from 'react'
+import { authService } from '@/lib/auth'
+import { domainHistoryService } from '@/lib/domainHistory'
+
+export default function Dashboard() {
+  const [user, setUser] = useState(null)
+  const [domains, setDomains] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [newDomain, setNewDomain] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+
+  useEffect(() => {
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    const currentUser = await authService.getCurrentUser()
+    if (!currentUser) {
+      window.location.href = '/login'
+      return
+    }
+    
+    setUser(currentUser)
+    await loadDomainHistory(currentUser.id)
+  }
+
+  const loadDomainHistory = async (userId) => {
+    setLoading(true)
+    const result = await domainHistoryService.getUserDomains(userId)
+    if (result.success) {
+      setDomains(result.domains)
+    }
+    setLoading(false)
+  }
+
+  const handleNewAnalysis = async () => {
+    if (!newDomain) return
+    
+    setAnalyzing(true)
+    
+    // Clean domain
+    const cleanDomain = extractCleanDomain(newDomain)
+    
+    // Check if user is authenticated
+    if (!user) {
+      // Show auth modal
+      showAuthModal()
+      return
+    }
+    
+    try {
+      // Perform analysis
+      const analysisResult = await analyzeWebsite(cleanDomain)
+      
+      // Save to history
+      await domainHistoryService.saveDomain(user.id, cleanDomain, analysisResult)
+      
+      // Redirect to results
+      window.location.href = `/analysis?domain=${cleanDomain}`
+      
+    } catch (error) {
+      showToast('Analysis failed. Please try again.', 'error')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const handleQuickReanalyze = async (domain) => {
+    setAnalyzing(true)
+    const result = await domainHistoryService.reanalyzeDomain(user.id, domain)
+    
+    if (result.cached) {
+      showToast(result.message, 'info')
+    }
+    
+    window.location.href = `/analysis?domain=${domain}`
+  }
+
+  const handleSearch = async (term) => {
+    setSearchTerm(term)
+    if (term.length > 2) {
+      const result = await domainHistoryService.searchDomains(user.id, term)
+      if (result.success) {
+        setDomains(result.data)
+      }
+    } else {
+      loadDomainHistory(user.id)
+    }
+  }
+
+  return (
+    <div className="dashboard">
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="header-content">
+          <h1>Welcome back, {user?.user_metadata?.name || 'there'}!</h1>
+          <p>You've analyzed {domains.length} domains</p>
+        </div>
+        <button onClick={() => authService.signOut()} className="signout-btn">
+          Sign Out
+        </button>
+      </header>
+
+      {/* New Analysis Section */}
+      <div className="new-analysis-section">
+        <h2>Analyze New Domain</h2>
+        <div className="analysis-input-group">
+          <input
+            type="text"
+            placeholder="Enter domain (e.g., example.com)"
+            value={newDomain}
+            onChange={(e) => setNewDomain(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleNewAnalysis()}
+            className="domain-input"
+          />
+          <button 
+            onClick={handleNewAnalysis}
+            disabled={analyzing}
+            className="analyze-btn"
+          >
+            {analyzing ? 'Analyzing...' : 'Analyze'}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="search-section">
+        <input
+          type="text"
+          placeholder="Search your domains..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      {/* Domain History Grid */}
+      <div className="domains-grid">
+        <h2>Your Domain History</h2>
+        
+        {loading ? (
+          <div className="loading-state">Loading your domains...</div>
+        ) : domains.length === 0 ? (
+          <div className="empty-state">
+            <h3>No domains analyzed yet</h3>
+            <p>Start by analyzing your first domain above</p>
+          </div>
+        ) : (
+          <div className="domain-cards">
+            {domains.map((domain) => (
+              <div key={domain.id} className="domain-card">
+                <div className="domain-header">
+                  <h3>{domain.domain}</h3>
+                  <span className="domain-date">
+                    {new Date(domain.analyzed_at).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                <div className="domain-stats">
+                  <div className="stat">
+                    <span className="stat-label">AI Score</span>
+                    <span className="stat-value">{domain.ai_visibility_score}/100</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-label">Improvements</span>
+                    <span className="stat-value">{domain.improvements_found}</span>
+                  </div>
+                </div>
+                
+                <div className="domain-actions">
+                  <button 
+                    onClick={() => window.location.href = `/analysis?domain=${domain.domain}`}
+                    className="view-btn"
+                  >
+                    View Report
+                  </button>
+                  <button 
+                    onClick={() => handleQuickReanalyze(domain.domain)}
+                    className="reanalyze-btn"
+                  >
+                    Re-analyze
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Load More */}
+        {domains.length >= 20 && (
+          <button className="load-more-btn">
+            Load More Domains
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### 7. DASHBOARD STYLING
+```css
+.dashboard {
+  min-height: 100vh;
+  background: #F9FAFB;
+  padding-top: 100px; /* Account for floating nav */
+}
+
+.dashboard-header {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  margin: 0 auto 30px;
+  max-width: 1200px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.new-analysis-section {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 1200px;
+  margin: 0 auto 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.analysis-input-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.domain-input {
+  flex: 1;
+  padding: 14px 20px;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.analyze-btn {
+  padding: 14px 32px;
+  background: #000;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.analyze-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.domains-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.domain-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.domain-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.domain-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-color: #000;
+}
+
+.domain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.domain-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  word-break: break-all;
+}
+
+.domain-date {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.domain-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  color: #6B7280;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #000;
+}
+
+.domain-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.view-btn, .reanalyze-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.view-btn {
+  background: #000;
+  color: white;
+  border: none;
+}
+
+.reanalyze-btn {
+  background: white;
+  color: #000;
+  border: 1px solid #E5E7EB;
+}
+
+.view-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.reanalyze-btn:hover {
+  background: #F9FAFB;
+  border-color: #000;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #6B7280;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 60px;
+  color: #6B7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .domain-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .analysis-input-group {
+    flex-direction: column;
+  }
+  
+  .analyze-btn {
+    width: 100%;
+  }
+}
+```
+
+### 8. INTEGRATION WITH EXISTING ANALYSIS
+```javascript
+// lib/analysis.js
+import { domainHistoryService } from './domainHistory'
+import { authService } from './auth'
+
+export async function analyzeWebsite(domain) {
+  try {
+    // Get current user
+    const user = await authService.getCurrentUser()
+    
+    // Perform your existing analysis logic
+    const analysisResult = await performAnalysis(domain)
+    
+    // If user is logged in, save to history
+    if (user) {
+      await domainHistoryService.saveDomain(
+        user.id,
+        domain,
+        analysisResult
+      )
+      
+      // Update user's domain count
+      await updateUserStats(user.id)
+    }
+    
+    return analysisResult
+  } catch (error) {
+    console.error('Analysis error:', error)
+    throw error
+  }
+}
+
+// Update nav bar based on auth status
+export function updateNavigation() {
+  const user = authService.getCurrentUser()
+  
+  if (user) {
+    // Show user menu instead of login/get started
+    document.querySelector('.nav-actions').innerHTML = `
+      <a href="/dashboard" class="dashboard-link">Dashboard</a>
+      <button onclick="authService.signOut()" class="signout-btn">Sign Out</button>
+    `
+  }
+}
+```
+
+### 9. PROTECTED ROUTES
+```javascript
+// middleware.js (Next.js)
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+
+export async function middleware(req) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Protect dashboard and analysis routes
+  const protectedRoutes = ['/dashboard', '/analysis', '/settings']
+  const isProtectedRoute = protectedRoutes.some(route => 
+    req.nextUrl.pathname.startsWith(route)
+  )
+
+  if (isProtectedRoute && !session) {
+    // Redirect to login with return URL
+    const redirectUrl = new URL('/login', req.url)
+    redirectUrl.searchParams.set('returnUrl', req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  return res
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/analysis/:path*', '/settings/:path*']
+}
+```
+
+### 10. QUICK WINS & ENHANCEMENTS
+```javascript
+// Additional features for better UX
+
+// 1. Auto-save draft domains
+const autoSaveDraft = (domain) => {
+  localStorage.setItem('draftDomain', domain)
+}
+
+// 2. Bulk domain analysis
+const bulkAnalyze = async (domains) => {
+  const results = []
+  for (const domain of domains) {
+    results.push(await analyzeWebsite(domain))
+    await sleep(1000) // Rate limiting
+  }
+  return results
+}
+
+// 3. Export domain history
+const exportDomainHistory = async (format = 'csv') => {
+  const domains = await domainHistoryService.getUserDomains(user.id, 1000)
+  
+  if (format === 'csv') {
+    const csv = convertToCSV(domains.data)
+    downloadFile(csv, 'domain-history.csv')
+  } else if (format === 'json') {
+    const json = JSON.stringify(domains.data, null, 2)
+    downloadFile(json, 'domain-history.json')
+  }
+}
+
+// 4. Domain monitoring (scheduled re-analysis)
+const scheduleDomainMonitoring = async (domain, frequency = 'weekly') => {
+  await supabase
+    .from('domain_monitoring')
+    .insert({
+      user_id: user.id,
+      domain: domain,
+      frequency: frequency,
+      next_check: calculateNextCheck(frequency)
+    })
+}
+
+// 5. Comparison view
+const compareDomains = async (domain1, domain2) => {
+  const [result1, result2] = await Promise.all([
+    domainHistoryService.getLatestAnalysis(domain1),
+    domainHistoryService.getLatestAnalysis(domain2)
+  ])
+  
+  return {
+    comparison: generateComparison(result1, result2),
+    winner: determineWinner(result1, result2)
+  }
+}
+```
+
+## 🎯 SUCCESS METRICS
+
+✅ **Authentication Flow:**
+- Sign up → Auto-login → Dashboard redirect
+- Sign in → Dashboard with personalized greeting
+- Persistent sessions with refresh tokens
+- Social auth options (Google, GitHub)
+
+✅ **Domain History:**
+- Every analysis auto-saved for logged-in users
+- Quick re-analyze from history
+- Search and filter capabilities
+- Export functionality
+
+✅ **User Experience:**
+- Smooth animations and transitions
+- Loading states for all async operations
+- Error handling with helpful messages
+- Mobile-responsive design
+
+✅ **Performance:**
+- Cache recent analyses (24-hour window)
+- Lazy load domain history
+- Optimistic UI updates
+- Pagination for large datasets
+
+## 🚀 FINAL IMPLEMENTATION NOTES
+
+1. **Security First**: All user data encrypted, secure auth tokens, HTTPS only
+2. **Scalability**: Pagination, caching, and efficient queries
+3. **User Delight**: Smooth animations, helpful tooltips, smart defaults
+4. **Data Persistence**: Every analysis saved, never lose user work
+5. **Quick Access**: One-click re-analysis from history
+
+This system will transform GeoPulse from a one-time analysis tool to an indispensable platform that users return to daily to monitor and improve their AI visibility.
+
+Ship this elite authentication and domain tracking system! 🎯
+This comprehensive prompt will implement a professional authentication system with automatic domain history tracking, creating a seamless user experience where every analysis is saved and easily accessible. The system includes user accounts, domain history, quick re-analysis, search functionality, and a beautiful dashboard to manage everything.

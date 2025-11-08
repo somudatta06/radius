@@ -1,21 +1,67 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { pgTable, text, varchar, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
   password: text("password").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const sessions = pgTable("sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+}, (table) => ({
+  expireIdx: index("sessions_expire_idx").on(table.expire),
+}));
+
+export const domainHistory = pgTable("domain_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  domain: text("domain").notNull(),
+  normalizedUrl: text("normalized_url").notNull(),
+  analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
+  aiVisibilityScore: integer("ai_visibility_score").notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("completed"),
+}, (table) => ({
+  userDomainsIdx: index("domain_history_user_domains_idx").on(table.userId, table.analyzedAt),
+  userUrlCacheIdx: index("domain_history_user_url_cache_idx").on(table.userId, table.normalizedUrl, table.analyzedAt),
+}));
+
+export const insertDomainHistorySchema = createInsertSchema(domainHistory).omit({
+  id: true,
+  analyzedAt: true,
+});
+
+export type InsertDomainHistory = z.infer<typeof insertDomainHistorySchema>;
+export type DomainHistory = typeof domainHistory.$inferSelect;
+
+export const analysisResults = pgTable("analysis_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainHistoryId: varchar("domain_history_id").notNull().references(() => domainHistory.id, { onDelete: "cascade" }),
+  analysisData: jsonb("analysis_data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAnalysisResultSchema = createInsertSchema(analysisResults).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
+export type AnalysisResultRow = typeof analysisResults.$inferSelect;
 
 // Analysis Result Schema
 export const analysisResultSchema = z.object({
