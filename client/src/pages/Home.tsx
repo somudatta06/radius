@@ -68,7 +68,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <DashboardHeader websiteUrl={analysisResult.url} onNewAnalysis={handleNewAnalysis} />
       
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-6 py-8 pt-28">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Overall Score"
