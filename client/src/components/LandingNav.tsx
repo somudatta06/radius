@@ -20,21 +20,21 @@ export default function LandingNav() {
             <a href="#pricing" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-pricing">
               Pricing
             </a>
-            <a href="#resources" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-resources">
-              Resources
-            </a>
             <a href="#about" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-about">
               About
             </a>
           </div>
           
           <div className="flex items-center gap-4">
+            <a href="#login" className="text-sm text-gray-700 hover:text-black transition-colors" data-testid="link-login">
+              Login
+            </a>
             <Button 
               size="sm" 
               className="bg-black hover:bg-gray-900 text-white rounded-lg px-6"
-              data-testid="button-start-free-trial"
+              data-testid="button-get-started"
             >
-              Start Free Trial
+              Get Started
             </Button>
           </div>
         </div>

@@ -1,0 +1,51 @@
+Hello Replit. We have a severe content integrity issue that needs immediate correction. The previous design implementation mistakenly overwrote the original content. This is a top-priority fix.
+Your task is to re-insert the ORIGINAL content into the current design structure, ensuring the existing design language (from the most recent successful design pass) remains 100% intact.
+I am providing a single image with the EXACT CONTENT that MUST be on the page: Image of Old Content - GeoPulse Landing Page (Reference: Original state with correct text)
+This time, focus SOLELY on content replacement, while preserving the existing, correct design.
+
+Absolute Non-Negotiables (Read Carefully):
+CONTENT IS THE ONLY FOCUS:
+The ONLY change allowed in this prompt is to update the text elements.
+DO NOT ALTER ANY CSS STYLING, layout, or design properties.
+DO NOT TOUCH the search bar's appearance or functionality.
+DO NOT TOUCH the "Age of AI." highlight's appearance.
+PRESERVE EXISTING DESIGN: The current visual styling of the navigation bar, headline font-weight, the "Age of AI." liquid glass highlight (black background, white text, subtle shine), the search bar (white background, internal black button, rounded corners), and the sub-headline font/color must be preserved exactly as they are now. You are just replacing the text within these styled elements.
+NO FUNCTIONALITY CHANGES: Backend connections and interactive element logic must remain untouched.
+
+Detailed Content Replacement Instructions:
+Locate the following elements and replace their text content precisely with the text provided below. Maintain all existing HTML tags (like <span> for the highlight) where they currently exist.
+Navigation Links:
+Find "Features" and set its text to: Features
+Find "Pricing" and set its text to: Pricing
+Find "About" and set its text to: About
+Find "Login" and set its text to: Login
+Find "Get Started" (or "Start Free Trial") and set its text to: Get Started
+Ensure this button retains its current styling (black background, white text).
+Hero Section - Main Headline:
+Find the main headline. It should be currently displaying "Be Found in the Age of AI."
+Replace its content to be: Increase your visibility
+The words "across AI platforms" should be contained within the existing styled element that currently has the "liquid glass" black highlight.
+So, the final structure should be: Increase your visibility <styled_highlight_element>across AI platforms</styled_highlight_element>
+Crucially: The across AI platforms text MUST inherit the existing liquid glass black highlight style.
+Hero Section - Sub-Headline:
+Find the sub-headline. It should be currently displaying "Advanced GEO targeting and optimization tools..."
+Replace its content to be: Discover how ChatGPT, Claude, Gemini, and Perplexity perceive your brand. Get actionable insights to boost your AI presence.
+Ensure this text retains its current styling (medium-gray color, regular font-weight, no underlines).
+Search Bar - Placeholder Text:
+Find the <input> element within the search bar.
+Replace its placeholder attribute's value to be: Enter your website URL (e.g., example.com)
+Search Bar - Button Text (if any, or just icon):
+The search button currently has only an icon. Maintain the icon. If it implicitly added text, remove it.
+Supporting Text Below Search Bar:
+This text was missing in the previous version. Please add this below the search bar, styled as a smaller, light-gray text.
+Content: No credit card required • Free comprehensive analysis • Results in 30 seconds
+Metrics/Social Proof Section (Below Hero):
+This section was also missing. Please add this section below the hero area.
+Each metric should be bold, with descriptive text in a regular font-weight next to it, matching the subtle styling of the original image.
+Content:
+500+ analyses run (with a small green dot icon if possible, like in the original image)
+89% avg improvement
+4 AI platforms analyzed
+To be absolutely clear: The visual outcome should combine the content from the provided old image with the sleek, minimalist black-and-white design (including the black liquid glass highlight and integrated search bar) that you have been working on.
+Proceed with extreme caution on content. The design is now established; it's time to accurately populate it.
+
