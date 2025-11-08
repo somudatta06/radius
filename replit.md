@@ -153,3 +153,58 @@ Professional auto-typing text animation in the navbar center that cycles through
 - Cursor blink animation working
 - No layout shifts or performance issues
 - Smooth operation across viewport sizes
+
+### AI-Generated Analysis Brief - PRODUCTION READY ✅
+Context-aware brief section below the Platform Visibility Scores graph that uses OpenAI to generate personalized insights about brand performance across AI platforms.
+
+**Feature Highlights:**
+- **On-Demand Generation**: Brief generated via OpenAI GPT-4o-mini when results page loads
+- **Contextual Analysis**: 2-3 sentence professional brief analyzing brand's AI visibility
+- **Platform Insights**: Identifies strongest and weakest platforms with specific scores
+- **Performance Summary**: Highlights overall performance level (strong >70, moderate 50-70, developing <50)
+- **Loading States**: Shows spinner with "Generating insights..." during generation
+- **Error Handling**: Graceful error display with retry capability
+
+**Security & Validation:**
+- **Input Validation**: Zod schema validates all inputs (scores 0-100, valid platforms)
+- **Input Sanitization**: Removes control characters to prevent prompt injection
+- **Authentication**: optionalAuth middleware for user tracking
+- **Server-Side Computation**: Strongest/weakest platforms computed server-side
+- **Safe Error Messages**: Error responses don't leak sensitive information
+
+**Technical Implementation:**
+- **Backend**: `POST /api/generate-brief` endpoint in `server/routes.ts`
+  - OpenAI GPT-4o-mini with temperature 0.7, max_tokens 200
+  - Zod validation for all inputs
+  - Sanitization of brand name and domain
+  - Pre-computed strongest/weakest platforms in prompt
+- **Frontend**: `BriefSection` component in `client/src/components/BriefSection.tsx`
+  - TanStack Query with query gating (`enabled` flag)
+  - Memoized payload for performance
+  - Explicit undefined/null checks (allows score of 0)
+  - 4 states: no-data, loading, error, success
+  - 5-minute cache (staleTime)
+  - Retry once on failure
+
+**States:**
+1. **No Data**: Shows "Insufficient data to generate brief" if required fields missing
+2. **Loading**: Sparkles icon + spinner + "Generating insights..."
+3. **Error**: AlertCircle icon + error message + "Please try again"
+4. **Success**: Generated brief text with relevant performance insights
+
+**Design Integration:**
+- Card background with border and padding
+- Sparkles icon with primary color accent (bg-primary/10)
+- Professional heading "AI Analysis Brief"
+- Muted foreground text for readability
+- Matches minimal black/white aesthetic
+- Responsive design
+
+**Test Results:**
+- E2E test passed for apple.com analysis (score 68)
+- Brief generated successfully with relevant content
+- Loading state displays correctly
+- Success state shows platform-specific insights
+- Validation correctly allows score of 0
+- No errors or edge case failures
+- Architect-approved for production
