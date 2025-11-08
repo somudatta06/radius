@@ -5,6 +5,7 @@ import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
 import DashboardHeader from "@/components/DashboardHeader";
 import AnalysisResults from "@/components/AnalysisResults";
+import { AnalysisTimeline } from "@/components/AnalysisTimeline";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalysisResult } from "@shared/schema";
 
@@ -46,6 +47,12 @@ export default function Home() {
       <>
         <LandingNav />
         <HeroSection onAnalyze={handleAnalyze} isLoading={analyzeMutation.isPending} />
+        <AnalysisTimeline 
+          isActive={analyzeMutation.isPending}
+          onComplete={() => {
+            // Timeline will auto-hide when analysis completes
+          }}
+        />
       </>
     );
   }
