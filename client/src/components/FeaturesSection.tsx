@@ -95,7 +95,7 @@ const RecommendationsVisualization = () => (
         className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover-elevate transition-all group"
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <item.Icon className="w-5 h-5 text-primary flex-shrink-0" />
+          <item.Icon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">
               {item.title}
@@ -106,7 +106,7 @@ const RecommendationsVisualization = () => (
           <span className={`text-xs px-2 py-1 rounded-full font-bold ${item.impactBg} ${item.impactText}`}>
             {item.impact}
           </span>
-          <span className="text-xs font-semibold text-primary">
+          <span className="text-xs font-bold text-foreground">
             {item.points}
           </span>
         </div>
