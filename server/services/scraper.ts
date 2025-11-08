@@ -24,11 +24,27 @@ export async function scrapeWebsite(url: string): Promise<WebsiteInfo> {
     // Ensure URL has protocol
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
     
-    const response = await fetch(fullUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GeoPulse/1.0; +https://geopulse.ai)',
-      },
-    });
+    let response;
+    try {
+      response = await fetch(fullUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; GeoPulse/1.0; +https://geopulse.ai)',
+        },
+      });
+    } catch (fetchError: any) {
+      // Provide user-friendly error messages for common issues
+      if (fetchError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || 
+          fetchError.code === 'CERT_HAS_EXPIRED' ||
+          fetchError.message?.includes('certificate')) {
+        throw new Error(`SSL certificate verification failed for ${fullUrl}. The website may have an invalid or expired SSL certificate. Please contact the website administrator to resolve this issue.`);
+      } else if (fetchError.code === 'ENOTFOUND') {
+        throw new Error(`Domain not found: ${fullUrl}. Please check the URL and try again.`);
+      } else if (fetchError.code === 'ETIMEDOUT' || fetchError.type === 'request-timeout') {
+        throw new Error(`Request timeout: ${fullUrl} took too long to respond. Please try again later.`);
+      } else {
+        throw fetchError;
+      }
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
