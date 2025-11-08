@@ -186,8 +186,8 @@ export const COMPETITOR_DISCOVERY_STEPS: CompetitorDiscoveryStep[] = [
   {
     step: 2,
     title: 'AI Response Mining',
-    description: 'We query all 6 AI platforms with your keywords and track which brands appear in responses',
-    method: 'Automated API queries across ChatGPT, Claude, Gemini, Perplexity, SearchGPT, Bing',
+    description: 'We query all 4 AI platforms with your keywords and track which brands appear in responses',
+    method: 'Automated API queries across ChatGPT, Claude, Gemini, and Perplexity',
     icon: '🤖',
     technical_details: '300+ queries per analysis, capturing brand mentions, rankings, and citation frequency'
   },

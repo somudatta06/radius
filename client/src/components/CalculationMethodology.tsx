@@ -109,17 +109,17 @@ export function CalculationMethodology() {
         <div className="space-y-3 pt-4 border-t">
           <h4 className="text-lg font-semibold">Multi-Platform Aggregation</h4>
           <p className="text-sm text-muted-foreground">
-            We test your visibility across 6 major AI platforms and average the results:
+            We test your visibility across 4 major AI platforms and average the results:
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-            {['ChatGPT (GPT-4)', 'Claude (Sonnet 4)', 'Google Gemini', 'Perplexity AI', 'SearchGPT', 'Bing Chat'].map((platform) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+            {['ChatGPT (GPT-4)', 'Claude (Sonnet 4)', 'Google Gemini', 'Perplexity AI'].map((platform) => (
               <div key={platform} className="bg-muted p-2 rounded text-center">
                 {platform}
               </div>
             ))}
           </div>
           <div className="bg-muted p-3 rounded-lg text-sm mt-3">
-            <div className="font-mono">Overall Platform Score = Average across all 6 platforms</div>
+            <div className="font-mono">Overall Platform Score = Average across all 4 platforms</div>
           </div>
         </div>
 
