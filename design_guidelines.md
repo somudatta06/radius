@@ -1,9 +1,38 @@
 # GeoPulse Design Guidelines
 
 ## Design Approach
-**System**: Modern SaaS Dashboard Pattern  
-**References**: Linear (clean data hierarchy), Vercel Analytics (modern dashboard aesthetics), Stripe (clarity in complex data)  
-**Principle**: Clarity-first analytics - make complex AI visibility data instantly comprehensible through strong visual hierarchy and purposeful data visualization
+**System**: Modern SaaS Landing Page + Dashboard Pattern  
+**References**: Linear (clean data hierarchy), Vercel Analytics (modern dashboard aesthetics), Stripe (clarity in complex data), Figma (premium landing design)  
+**Principle**: Premium conversion-focused landing page that transitions seamlessly to clarity-first analytics dashboard
+
+## Landing Page Design
+
+### Visual Style
+- **Premium aesthetic**: Clean, modern, professional with subtle gradients and smooth animations
+- **Color palette**: Soft neutral background (#F8F7F5) with vibrant accent colors (blues, oranges)
+- **Typography**: Large, bold headlines with generous spacing
+- **Layout**: Centered content, generous whitespace, clear visual hierarchy
+
+### Navigation Bar
+- **Style**: Fixed position, clean minimal design with subtle background
+- **Logo**: Left-aligned, bold text treatment
+- **Nav items**: Center-aligned, clean text links with hover states
+- **CTA button**: Right-aligned primary button with subtle border
+
+### Hero Section
+- **Layout**: Full viewport height with centered content
+- **Headline**: Extra large (text-5xl to text-6xl), bold, high contrast
+- **Subheadline**: Medium size (text-xl), muted color for hierarchy
+- **Search component**: Large, prominent, centered with rounded corners
+- **Visual elements**: Custom illustrations or abstract decorative shapes
+- **Background**: Soft gradient or solid neutral color
+
+### Search/Analysis Component
+- **Container**: Large rounded white card with subtle shadow
+- **Input**: Generous padding, clear placeholder text
+- **Button**: High contrast, vibrant color, clear label
+- **Helper text**: Small text below ("No credit card required" messaging)
+- **States**: Loading spinner, validation feedback, smooth transitions
 
 ## Typography System
 - **Primary Font**: Inter (Google Fonts) - exceptional readability for data-dense interfaces

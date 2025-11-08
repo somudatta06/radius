@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import URLInputForm from "@/components/URLInputForm";
+import LandingNav from "@/components/LandingNav";
+import HeroSection from "@/components/HeroSection";
 import DashboardHeader from "@/components/DashboardHeader";
 import StatsCard from "@/components/StatsCard";
 import PlatformComparison from "@/components/PlatformComparison";
@@ -47,7 +48,12 @@ export default function Home() {
   };
 
   if (!analysisResult) {
-    return <URLInputForm onAnalyze={handleAnalyze} isLoading={analyzeMutation.isPending} />;
+    return (
+      <>
+        <LandingNav />
+        <HeroSection onAnalyze={handleAnalyze} isLoading={analyzeMutation.isPending} />
+      </>
+    );
   }
 
   const { brandInfo, overallScore, platformScores, dimensionScores, competitors, gaps, recommendations } = analysisResult;
