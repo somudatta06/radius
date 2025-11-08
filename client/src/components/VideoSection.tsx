@@ -44,14 +44,6 @@ export default function VideoSection() {
               </div>
             </div>
           </div>
-
-          {/* Video Stats/Info Below */}
-          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8 mt-6 text-xs md:text-sm text-muted-foreground">
-            <div className="flex items-center gap-2" data-testid="stat-no-fluff">
-              <Sparkles className="w-4 h-4" />
-              <span className="font-medium">No fluff</span>
-            </div>
-          </div>
         </div>
       </div>
     </section>
