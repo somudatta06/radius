@@ -36,16 +36,25 @@ Key data schemas include `User`, `Session`, `DomainHistory`, and `AnalysisResult
 *   **PDF Generation**: `@react-pdf/renderer`, `jspdf`, `html2canvas`.
 
 ## Recent Updates (November 2025)
-### AI Analysis Progress Timeline - PRODUCTION READY ✅
-Implemented a world-class, minimalist progress timeline providing real-time feedback during the 30-second AI analysis process. The timeline features smooth animations, responsive design, and ensures complete visualization regardless of API response speed.
+### AI Analysis Progress Bar - PRODUCTION READY ✅
+Implemented a minimalist percentage-driven progress bar providing real-time feedback during the 30-second AI analysis process. The progress bar features a clean gray design matching modern UI standards, smooth percentage animation, and dynamic task descriptions.
+
+**Design Specifications:**
+- **Large Percentage Display**: 0-100% in 48-56px font, color #6B7280 (dark gray)
+- **Progress Bar**: 12px height, fully rounded, gray color scheme
+  - Background: #E0E0E0 (light gray)
+  - Fill: #9E9E9E (medium gray)  
+- **Task Descriptions**: 16-18px font, color #9CA3AF (light gray), updates every 5-7 seconds
+- **Container**: Max-width 600px, centered, positioned below search input
 
 **Features:**
-- 5 sequential steps with exact durations: Querying (6s), Analyzing (7s), Processing (6s), Insights (6s), Finalizing (5s)
-- Smooth animations: entry fade-in, active pulse, progress bars, completion checkmarks, exit fade-out
-- Responsive design: horizontal layout (desktop), vertical layout (mobile)
-- Guaranteed completion: Timeline completes full animation cycle even if API responds quickly
+- Smooth percentage animation from 0-100% (updates every 100ms)
+- 5 sequential tasks with exact durations: Querying AI platforms (6s), Analyzing competitors (7s), Processing responses (6s), Generating insights (6s), Finalizing report (5s)
+- Guaranteed completion: Progress bar completes full animation cycle even if API responds quickly
 - Clean lifecycle: Proper timer cleanup prevents React warnings and memory leaks
-- Accessibility: ARIA attributes, screen reader support, semantic HTML
+- Responsive design: Works perfectly on mobile, tablet, and desktop
+- Fade-in on appearance, 1.5s delay before fade-out after reaching 100%
+- Accessibility: ARIA attributes, screen reader support with percentage announcements
 
 ### Comprehensive GEO Metrics System - PRODUCTION READY ✅
 Successfully integrated a complete GEO (Generative Engine Optimization) metrics system with full backend calculations and frontend display. All features are now live in production with real data from the analyzer service.
@@ -82,8 +91,8 @@ Successfully integrated a complete GEO (Generative Engine Optimization) metrics 
    - Professional layout using `@react-pdf/renderer`
 
 ### New Files Added
-**Timeline Components:**
-*   `client/src/components/AnalysisTimeline.tsx` - Minimalist progress timeline with 5 steps and animations
+**Progress Bar Components:**
+*   `client/src/components/AnalysisTimeline.tsx` - Minimalist percentage-driven progress bar with gray design and smooth animations
 
 **GEO Components:**
 *   `client/src/lib/geo-types.ts` - Comprehensive TypeScript type definitions for GEO metrics
