@@ -75,6 +75,13 @@ export const extractCleanDomain = (userInput: string): string => {
   // Remove whitespace
   let url = userInput.trim();
 
+  // Strip common trailing punctuation from marketing materials
+  // e.g., "Visit us at example.com!" → "example.com"
+  url = url.replace(/[.,!?;:\s]+$/, '');
+  
+  // Strip leading punctuation
+  url = url.replace(/^[.,!?;:\s]+/, '');
+
   // Check for localhost
   if (url.includes('localhost') || url.includes('127.0.0.1') || url.includes('0.0.0.0')) {
     throw new Error(URL_ERRORS.LOCALHOST);
@@ -252,32 +259,7 @@ export const getUrlError = (input: string): string | null => {
 };
 
 /**
- * Cache for processed domains to avoid re-parsing
+ * Note: Caching is not implemented as the backend already caches analysis results
+ * and URL parsing is fast enough (<1ms) that client-side caching provides no
+ * measurable benefit for the current use case.
  */
-const domainCache = new Map<string, string>();
-const CACHE_SIZE_LIMIT = 100;
-
-/**
- * Gets cached domain or processes and caches new domain
- * 
- * @param input - User input URL
- * @returns Clean domain
- */
-export const getCachedDomain = (input: string): string => {
-  if (domainCache.has(input)) {
-    return domainCache.get(input)!;
-  }
-  
-  const domain = extractCleanDomain(input);
-  domainCache.set(input, domain);
-  
-  // Limit cache size
-  if (domainCache.size > CACHE_SIZE_LIMIT) {
-    const firstKey = domainCache.keys().next().value;
-    if (firstKey) {
-      domainCache.delete(firstKey);
-    }
-  }
-  
-  return domain;
-};
