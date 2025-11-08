@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
+import { Footer } from "@/components/Footer";
 import DashboardHeader from "@/components/DashboardHeader";
 import AnalysisResults from "@/components/AnalysisResults";
 import type { AnalysisResult } from "@shared/schema";
@@ -58,6 +59,7 @@ export default function Home() {
           onTimelineComplete={handleTimelineComplete}
         />
         <FeaturesSection />
+        <Footer />
       </>
     );
   }
