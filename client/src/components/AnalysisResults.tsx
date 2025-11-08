@@ -301,8 +301,11 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
         </div>
       )}
       {activeTab === "competitors" && (
-        <div className="space-y-6" data-testid="content-competitors">
-          <h2 className="text-2xl font-bold mb-6">Competitor Rankings</h2>
+        <div className="space-y-8" data-testid="content-competitors">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Competitor Rankings</h2>
+            <p className="text-muted-foreground">Discover how you stack up against your competition</p>
+          </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {competitors.map((competitor) => (
               <CompetitorCard 
