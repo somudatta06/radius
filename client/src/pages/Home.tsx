@@ -5,6 +5,7 @@ import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
 import LLMStatementSection from "@/components/LLMStatementSection";
 import VideoSection from "@/components/VideoSection";
+import WhatIsGEOSection from "@/components/WhatIsGEOSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -62,6 +63,7 @@ export default function Home() {
         />
         <LLMStatementSection />
         <VideoSection />
+        <WhatIsGEOSection />
         <FeaturesSection />
         <Footer />
       </>
