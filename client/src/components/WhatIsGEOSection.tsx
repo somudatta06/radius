@@ -41,11 +41,6 @@ export default function WhatIsGEOSection() {
             {/* Decorative corner element */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-muted/50 rounded-bl-full" />
             
-            {/* Premium Badge */}
-            <div className="relative z-10 absolute top-6 right-6 px-3 py-1 bg-muted text-muted-foreground text-xs font-bold rounded-full border border-border">
-              Traditional
-            </div>
-            
             {/* Title Section */}
             <div className="relative z-10 mb-8">
               <h3 className="text-3xl font-bold text-foreground mb-1 tracking-tight">
