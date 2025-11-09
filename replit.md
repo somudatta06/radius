@@ -33,28 +33,46 @@ Educational section explaining Generative Engine Optimization through visual com
 
 **Design Features:**
 - **Strategic Placement**: Positioned between Video and Features (Hero → Statement → Video → WhatIsGEO → Features → Footer)
-- **Educational Header**: "The Basics" badge with "What is GEO?" title
-- **Clear Definition**: One-sentence explanation of Generative Engine Optimization
-- **Visual Comparison**: Side-by-side cards comparing Traditional SEO vs Modern GEO
+- **Premium Badge**: Dot indicator with "THE BASICS" text (xs, bold, tracking-wider)
+- **Enhanced Typography**: Large, tight heading (text-5xl → text-6xl → text-7xl with tracking-tight, leading-none)
+- **Refined Definition**: Light body text (font-light) with bold "Generative Engine Optimization" term
+- **Visual Comparison**: Side-by-side cards with premium styling and hover effects
 - **Platform Lists**: 3 traditional platforms (Google, Bing, Yahoo) vs 4 AI platforms (ChatGPT, Claude, Gemini, Perplexity)
-- **Stats Banner**: 3 compelling statistics (65% AI adoption, 5.6B queries, 0% visibility gap)
+- **Stats Banner**: 3 compelling statistics with large numbers (65% AI adoption, 5.6B queries, 0% visibility gap)
+
+**Premium Visual Enhancements:**
+- **Traditional SEO Card**:
+  - Decorative corner element (bg-muted/50 circle, top-right)
+  - Hover gradient overlay (opacity transition)
+  - Enhanced shadows (shadow-sm → shadow-xl on hover)
+  - Individual platform icon hover states
+  - Border interaction (border-foreground/20 on hover)
+- **Modern GEO Card**:
+  - Dual glow effects (top-right, bottom-left blur circles)
+  - Animated glows (intensify on hover)
+  - Glass morphism (backdrop-blur on badge and icons)
+  - Shine animation (gradient sweep on hover)
+  - Enhanced shadows (shadow-2xl → shadow-3xl on hover)
+  - Individual platform icon hover states
+- **Improved Spacing**: py-28 section padding, mb-20 section spacing, mb-8 card spacing
 
 **Technical Details:**
 - Component: `client/src/components/WhatIsGEOSection.tsx`
 - Location: Landing page only, between VideoSection and FeaturesSection
 - Background: bg-muted for subtle contrast
-- Icons: Search (Traditional), Sparkles (Modern), Check (platform lists) - all lucide-react
-- Traditional Card: bg-card with border-border, hover-elevate utility
-- Modern Card: bg-foreground text-background (dark/inverted), shadow-2xl, glow effect
-- Stats: text-5xl numbers with text-sm descriptions
-- Grid: grid-cols-1 md:grid-cols-2 (responsive stacking)
+- Icons: Check only (lucide-react) - icon backgrounds removed per refinement
+- Typography: text-3xl card titles, text-6xl stats (md), tracking-tight throughout
+- Traditional Card: bg-card, decorative corner, hover gradient, individual icon hovers
+- Modern Card: bg-foreground, dual glows, glass effects, shine animation, shadow-2xl
+- Grid: grid-cols-1 lg:grid-cols-2 (responsive stacking)
+- Transitions: duration-300 (cards), duration-500 (glows), duration-1000 (shine)
 - Colors: 100% semantic tokens (no hardcoded grays)
 
 **Quality Assurance:**
-- Architect-approved with PASS verdict
-- E2E tested with all platforms listed, stats verified, responsive behavior confirmed
-- Design system compliant (semantic tokens, lucide-react icons, no emojis)
-- Production-ready with clear educational value and premium aesthetic
+- Architect-approved with PASS verdict (premium refinements confirmed)
+- E2E tested with all enhancements verified (typography, badge, cards, stats, responsive behavior)
+- Design system compliant (semantic tokens, glass morphism, no emojis)
+- Production-ready with premium aesthetic and clear educational value
 
 ### LLM Statement Section - PRODUCTION READY ✅
 Bold value proposition statement "LLMs are the new Google Search" strategically positioned between HeroSection and VideoSection, creating urgency and context for the product demo.
