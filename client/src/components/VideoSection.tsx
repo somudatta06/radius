@@ -1,5 +1,3 @@
-import { Clock, Target, Sparkles } from "lucide-react";
-
 export default function VideoSection() {
   return (
     <section className="w-full bg-background py-16 md:py-24" data-testid="section-video">
