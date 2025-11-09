@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
+import LLMStatementSection from "@/components/LLMStatementSection";
 import VideoSection from "@/components/VideoSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
@@ -59,6 +60,7 @@ export default function Home() {
           isLoading={analyzeMutation.isPending || !!pendingResult}
           onTimelineComplete={handleTimelineComplete}
         />
+        <LLMStatementSection />
         <VideoSection />
         <FeaturesSection />
         <Footer />
