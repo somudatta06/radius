@@ -85,9 +85,6 @@ export default function WhatIsGEOSection() {
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-background/10 rounded-full blur-3xl" />
 
             <div className="relative z-10 mb-6">
-              <div className="w-14 h-14 bg-background/10 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4">
-                <Sparkles className="w-7 h-7 text-background" />
-              </div>
               <h3 className="text-2xl font-bold text-background mb-2">
                 GEO
               </h3>
