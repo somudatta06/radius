@@ -93,11 +93,6 @@ export default function WhatIsGEOSection() {
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-background/5 rounded-full blur-3xl group-hover:bg-background/10 transition-all duration-500" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-background/5 rounded-full blur-3xl group-hover:bg-background/10 transition-all duration-500" />
             
-            {/* Premium Badge */}
-            <div className="relative z-10 absolute top-6 right-6 px-3 py-1 bg-background/10 backdrop-blur-md text-background text-xs font-bold rounded-full border border-background/20">
-              The Future
-            </div>
-            
             {/* Title Section */}
             <div className="relative z-10 mb-8">
               <h3 className="text-3xl font-bold text-background mb-1 tracking-tight">
