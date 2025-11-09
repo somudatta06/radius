@@ -35,9 +35,6 @@ export default function WhatIsGEOSection() {
             </div>
 
             <div className="mb-6">
-              <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mb-4">
-                <Search className="w-7 h-7 text-foreground" />
-              </div>
               <h3 className="text-2xl font-bold text-foreground mb-2">
                 SEO
               </h3>
