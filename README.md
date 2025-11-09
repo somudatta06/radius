@@ -308,7 +308,9 @@ Brands are blind to their AI visibility. We built the first analytics tool for t
 
 **Vision:** Make every brand visible in the AI era
 
-**Live Demo:** https://eb516490-8beb-41f9-8e5b-617408e0ccd3-00-2x2ugvedghdbi.picard.replit.dev/
+**Website Link:** https://eb516490-8beb-41f9-8e5b-617408e0ccd3-00-2x2ugvedghdbi.picard.replit.dev/
+
+**Live Video:** https://www.loom.com/share/e3f5aad36f3b4951b6ca39006fb400f7
 
 **GitHub:** https://github.com/somudatta/radius_replit
 
