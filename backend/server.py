@@ -349,14 +349,19 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
-        # AUTOMATIC KNOWLEDGE BASE GENERATION
+        # Extract domain for domain-specific KB storage
+        from urllib.parse import urlparse
+        parsed_url_for_kb = urlparse(url)
+        domain_for_kb = parsed_url_for_kb.netloc.replace('www.', '').replace('.', '_')
+        
+        # AUTOMATIC KNOWLEDGE BASE GENERATION (per-domain)
         # Generate KB from website (fire and forget - runs in background)
         try:
             from services.knowledge_service import knowledge_service
-            # Start KB generation but don't wait for it (non-blocking)
-            task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id="default"))
+            # Start KB generation using domain as company_id for domain-specific KB
+            task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id=domain_for_kb))
             # Optional: Add callback to log completion
-            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {url}"))
+            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {url} (company_id: {domain_for_kb})"))
         except Exception as kb_error:
             print(f"⚠️  KB generation failed (non-critical): {str(kb_error)}")
         
