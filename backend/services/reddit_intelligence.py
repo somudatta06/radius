@@ -79,9 +79,14 @@ class RedditIntelligenceService:
     
     async def _generate_mock_reddit_data(self, brand_name: str) -> List[Dict]:
         """
-        Generate realistic Reddit thread data
-        In production, this would fetch from Reddit API and analyze with KB
+        ⚠️ MOCK DATA - NOT REAL REDDIT THREADS
+        This is placeholder data for demonstration purposes.
+        In production, this MUST be replaced with real Reddit API integration.
+        
+        SAFETY: These threads are fabricated examples. URLs, subreddits, and 
+        citation counts are NOT REAL and should not be treated as factual data.
         """
+        # Add mock disclaimer to metadata
         mock_threads = [
             {
                 "id": "thread_1",

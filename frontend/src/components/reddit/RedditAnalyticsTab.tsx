@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, MessageSquare, ExternalLink, Search } from "lucide-react";
+import { MockDataBanner } from "@/components/reddit/MockDataBanner";
 
 interface RedditThread {
   id: string;
@@ -104,6 +105,9 @@ export function RedditAnalyticsTab({ brandName }: RedditAnalyticsTabProps) {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6 mt-6">
+          {/* Mock Data Warning */}
+          <MockDataBanner />
+          
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {metricsLoading ? (
