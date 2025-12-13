@@ -206,20 +206,21 @@ class VisibilityService:
             }
         }
     
-    def calculate_share_of_voice(self) -> Dict:
+    def calculate_share_of_voice(self, competitors: List[Dict] = None) -> Dict:
         """
-        Calculate share of voice: % of total mentions
+        Calculate share of voice: % of total mentions using REAL competitor data
         """
+        comp_list = competitors if competitors else self.get_current_competitors()
         shares = []
         total = 100.0
         remaining = total
         
-        for idx, comp in enumerate(self.mock_competitors):
-            if idx == len(self.mock_competitors) - 1:
+        for idx, comp in enumerate(comp_list):
+            if idx == len(comp_list) - 1:
                 share = remaining
             else:
                 share = random.uniform(5, 30)
-                share = min(share, remaining - (len(self.mock_competitors) - idx - 1) * 5)
+                share = min(share, remaining - (len(comp_list) - idx - 1) * 5)
             
             shares.append({
                 "competitor_id": comp["id"],
