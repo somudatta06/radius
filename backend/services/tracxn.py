@@ -113,25 +113,20 @@ class TracxnService:
             raw_data: Raw company data from Tracxn
             
         Returns:
-            Normalized company dictionary
+            Normalized company dictionary matching exact spec
         """
         return {
-            "id": raw_data.get("id", ""),
             "name": raw_data.get("name", "Unknown"),
-            "website": raw_data.get("website", ""),
-            "category": raw_data.get("category", "Unknown"),
-            "description": raw_data.get("description", ""),
-            "funding": {
-                "total": raw_data.get("funding", {}).get("total", 0),
-                "currency": raw_data.get("funding", {}).get("currency", "USD"),
-                "stage": raw_data.get("funding", {}).get("stage", "Unknown")
-            },
-            "stage": raw_data.get("stage", "Unknown"),
-            "investors": raw_data.get("investors", []),
-            "lastUpdated": raw_data.get("last_updated", ""),
-            "location": raw_data.get("location", {}),
-            "founded": raw_data.get("founded_year", None),
-            "employees": raw_data.get("employee_count", None)
+            "website": raw_data.get("website", raw_data.get("url", "")),
+            "description": raw_data.get("description", raw_data.get("brief", "")),
+            "category": raw_data.get("category", raw_data.get("sector", "Unknown")),
+            "funding": raw_data.get("total_funding", raw_data.get("funding", {}).get("total", 0)),
+            "stage": raw_data.get("stage", raw_data.get("funding_stage", "Unknown")),
+            "investors": raw_data.get("investors", raw_data.get("investor_names", [])),
+            "location": raw_data.get("location", raw_data.get("hq_location", "")),
+            "foundedYear": raw_data.get("founded_year", raw_data.get("founded", None)),
+            "revenue": raw_data.get("revenue", raw_data.get("annual_revenue", None)),
+            "employeeSize": raw_data.get("employee_count", raw_data.get("employees", None))
         }
 
 # Singleton instance
