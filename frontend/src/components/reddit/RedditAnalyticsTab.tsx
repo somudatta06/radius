@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, MessageSquare, ExternalLink, Search } from "lucide-react";
+import { TrendingUp, MessageSquare, ExternalLink, Search, AlertTriangle } from "lucide-react";
 import { MockDataBanner } from "@/components/reddit/MockDataBanner";
 
 interface RedditThread {
@@ -23,6 +23,7 @@ interface RedditThread {
   sentiment_score: number;
   summary: string;
   created_at: string;
+  is_verified?: boolean;  // Real data verification flag
 }
 
 interface RedditMetrics {
@@ -32,32 +33,41 @@ interface RedditMetrics {
   total_mentions: number;
   change_vs_previous: number;
   reddit_share_of_citations: number;
+  data_source?: string;  // "live_api" | "mock" | "insufficient_data"
 }
 
 interface RedditAnalyticsTabProps {
   brandName?: string;
+  analysisId?: string;  // Per-analysis data
 }
 
-export function RedditAnalyticsTab({ brandName }: RedditAnalyticsTabProps) {
+export function RedditAnalyticsTab({ brandName, analysisId }: RedditAnalyticsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState("analytics");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterSentiment, setFilterSentiment] = useState("all");
 
-  // Fetch Reddit metrics
+  // Fetch Reddit metrics with NO CACHING
   const { data: metrics, isLoading: metricsLoading } = useQuery<RedditMetrics>({
-    queryKey: ["/api/reddit/metrics"],
+    queryKey: ["/api/reddit/metrics", analysisId],
     queryFn: async () => {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
-      const res = await fetch(`${backendUrl}/api/reddit/metrics`);
+      const res = await fetch(`${backendUrl}/api/reddit/metrics?analysis_id=${analysisId || 'default'}`, {
+        headers: {
+          "Cache-Control": "no-store, no-cache",
+          "X-Request-Nonce": `${Date.now()}`,
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch metrics");
       return await res.json();
     },
+    staleTime: 0,
+    gcTime: 0,
   });
 
-  // Fetch Reddit threads
+  // Fetch Reddit threads with NO CACHING
   const { data: threads, isLoading: threadsLoading } = useQuery<RedditThread[]>({
-    queryKey: ["/api/reddit/threads", searchQuery, filterType, filterSentiment],
+    queryKey: ["/api/reddit/threads", searchQuery, filterType, filterSentiment, analysisId],
     queryFn: async () => {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
       const params = new URLSearchParams();
