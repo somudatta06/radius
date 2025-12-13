@@ -1,0 +1,135 @@
+"""
+Tracxn API Integration Service
+Handles competitor discovery and company data retrieval
+"""
+import requests
+import os
+from typing import List, Dict, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+TRACXN_API_KEY = os.getenv("TRACXN_API_KEY")
+TRACXN_BASE_URL = "https://api.tracxn.com/v1"
+
+class TracxnService:
+    """Service for interacting with Tracxn API"""
+    
+    def __init__(self):
+        self.api_key = TRACXN_API_KEY
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def search_competitors(self, keyword: str, limit: int = 10) -> List[Dict]:
+        """
+        Search for companies/competitors using keyword
+        
+        Args:
+            keyword: Search term (e.g., "AI analytics", "SaaS CRM")
+            limit: Maximum number of results
+            
+        Returns:
+            List of competitor data
+        """
+        try:
+            url = f"{TRACXN_BASE_URL}/companies/search"
+            params = {
+                "q": keyword,
+                "limit": limit
+            }
+            
+            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            companies = data.get("data", [])
+            
+            return [self._normalize_company(company) for company in companies]
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Tracxn search error: {str(e)}")
+            return []
+    
+    def get_competitor_details(self, company_id: str) -> Optional[Dict]:
+        """
+        Get detailed information about a specific company
+        
+        Args:
+            company_id: Tracxn company ID
+            
+        Returns:
+            Detailed company data
+        """
+        try:
+            url = f"{TRACXN_BASE_URL}/companies/{company_id}"
+            
+            response = requests.get(url, headers=self.headers, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            return self._normalize_company(data.get("data", {}))
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Tracxn details error: {str(e)}")
+            return None
+    
+    def discover_by_category(self, category: str, limit: int = 10) -> List[Dict]:
+        """
+        Discover competitors by category
+        
+        Args:
+            category: Category name (e.g., "AI tools", "SaaS", "E-commerce")
+            limit: Maximum number of results
+            
+        Returns:
+            List of companies in category
+        """
+        try:
+            url = f"{TRACXN_BASE_URL}/categories/{category}/companies"
+            params = {"limit": limit}
+            
+            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            companies = data.get("data", [])
+            
+            return [self._normalize_company(company) for company in companies]
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Tracxn category discovery error: {str(e)}")
+            return []
+    
+    def _normalize_company(self, raw_data: Dict) -> Dict:
+        """
+        Normalize Tracxn company data to unified format
+        
+        Args:
+            raw_data: Raw company data from Tracxn
+            
+        Returns:
+            Normalized company dictionary
+        """
+        return {
+            "id": raw_data.get("id", ""),
+            "name": raw_data.get("name", "Unknown"),
+            "website": raw_data.get("website", ""),
+            "category": raw_data.get("category", "Unknown"),
+            "description": raw_data.get("description", ""),
+            "funding": {
+                "total": raw_data.get("funding", {}).get("total", 0),
+                "currency": raw_data.get("funding", {}).get("currency", "USD"),
+                "stage": raw_data.get("funding", {}).get("stage", "Unknown")
+            },
+            "stage": raw_data.get("stage", "Unknown"),
+            "investors": raw_data.get("investors", []),
+            "lastUpdated": raw_data.get("last_updated", ""),
+            "location": raw_data.get("location", {}),
+            "founded": raw_data.get("founded_year", None),
+            "employees": raw_data.get("employee_count", None)
+        }
+
+# Singleton instance
+tracxn_service = TracxnService()
