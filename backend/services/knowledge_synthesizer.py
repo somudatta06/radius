@@ -167,6 +167,126 @@ IMPORTANT:
 - No placeholder text like "Please describe..." - write actual content
 - Ensure total output is substantial (aim for 500+ words across all fields)"""
     
+    def _validate_quality(self, knowledge: Dict) -> bool:
+        """
+        Quality gate - reject low-quality GPT output
+        Returns True only if output meets professional standards
+        """
+        try:
+            # Check company_overview exists and has content
+            overview = knowledge.get('company_overview', {})
+            if not overview.get('what_the_company_is') or len(overview.get('what_the_company_is', '')) < 50:
+                print("❌ Validation failed: Company overview too short or missing")
+                return False
+            
+            # Check products section exists
+            products = knowledge.get('products_and_services', {})
+            if not products.get('primary_offerings') or len(products.get('primary_offerings', [])) == 0:
+                print("❌ Validation failed: No products/offerings listed")
+                return False
+            
+            # Check for placeholder language
+            all_text = json.dumps(knowledge).lower()
+            placeholder_phrases = [
+                'please describe',
+                'please edit',
+                'not available',
+                'coming soon',
+                'lorem ipsum',
+                'placeholder'
+            ]
+            for phrase in placeholder_phrases:
+                if phrase in all_text:
+                    print(f"❌ Validation failed: Contains placeholder phrase '{phrase}'")
+                    return False
+            
+            # Check minimum total word count
+            total_words = len(all_text.split())
+            if total_words < 100:
+                print(f"❌ Validation failed: Total content too short ({total_words} words)")
+                return False
+            
+            print(f"✅ Quality validation passed ({total_words} words)")
+            return True
+        
+        except Exception as e:
+            print(f"❌ Validation error: {str(e)}")
+            return False
+    
+    def _format_knowledge_base(self, knowledge: Dict, domain: str, pages_analyzed: int) -> Dict:
+        """
+        Transform structured GPT output into Knowledge Base format
+        Combines multiple fields into cohesive sections
+        """
+        overview_data = knowledge.get('company_overview', {})
+        products_data = knowledge.get('products_and_services', {})
+        customers_data = knowledge.get('target_customers', {})
+        positioning_data = knowledge.get('market_positioning', {})
+        differentiators = knowledge.get('key_differentiators', [])
+        brand_data = knowledge.get('brand_tone_and_voice', {})
+        
+        # Build cohesive overview section
+        overview_text = f"{overview_data.get('what_the_company_is', '')}\n\n"
+        overview_text += f"Mission: {overview_data.get('core_mission', '')}\n\n"
+        overview_text += f"Operations: {overview_data.get('where_it_operates', '')}"
+        
+        # Build products section
+        products_text = f"Primary Offerings:\n"
+        for offering in products_data.get('primary_offerings', []):
+            products_text += f"• {offering}\n"
+        products_text += f"\nDelivery: {products_data.get('delivery_model', '')}\n\n"
+        products_text += "Key Outcomes:\n"
+        for outcome in products_data.get('key_outcomes_for_users', []):
+            products_text += f"• {outcome}\n"
+        
+        # Build target customers section
+        customers_text = f"Primary Audience: {customers_data.get('primary_audience', '')}\n\n"
+        if customers_data.get('secondary_audience'):
+            customers_text += f"Secondary Audience: {customers_data.get('secondary_audience', '')}\n\n"
+        customers_text += "Customer Needs Addressed:\n"
+        for need in customers_data.get('customer_needs_solved', []):
+            customers_text += f"• {need}\n"
+        
+        # Build positioning section
+        positioning_text = f"Category: {positioning_data.get('category', '')}\n\n"
+        positioning_text += f"Differentiation: {positioning_data.get('how_it_is_different', '')}\n\n"
+        if positioning_data.get('alternatives_it_replaces'):
+            positioning_text += "Alternatives Replaced:\n"
+            for alt in positioning_data.get('alternatives_it_replaces', []):
+                positioning_text += f"• {alt}\n"
+        
+        # Add differentiators to positioning
+        if differentiators:
+            positioning_text += "\nKey Differentiators:\n"
+            for diff in differentiators:
+                positioning_text += f"• {diff}\n"
+        
+        return {
+            "company_description": {
+                "overview": overview_text.strip(),
+                "products_services": products_text.strip(),
+                "target_customers": customers_text.strip(),
+                "positioning": positioning_text.strip(),
+                "is_ai_generated": True,
+                "generated_from": domain,
+            },
+            "brand_guidelines": {
+                "tone": brand_data.get('tone', 'Professional'),
+                "words_to_prefer": [],  # Intentionally empty - user should fill
+                "words_to_avoid": brand_data.get('phrases_to_avoid', [])[:5],
+                "dos": brand_data.get('writing_style_rules', [])[:5],
+                "donts": [],
+                "is_ai_extracted": True,
+            },
+            "evidence": [],
+            "metadata": {
+                "source": "ai_generated_validated",
+                "generated_from": domain,
+                "pages_analyzed": pages_analyzed,
+                "quality": "validated"
+            }
+        }
+    
     def _fallback_knowledge_base(self, scraped_data: Dict) -> Dict:
         """Fallback KB when GPT is unavailable"""
         domain = scraped_data.get('domain', 'your company')
