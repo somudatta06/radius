@@ -5,38 +5,42 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tool
 
 interface VisibilityDashboardProps {
   brandId?: string;
+  domain?: string;  // Added domain prop for REAL competitor data
 }
 
-export function VisibilityDashboard({ brandId = 'current' }: VisibilityDashboardProps) {
-  // Fetch all visibility metrics
+export function VisibilityDashboard({ brandId = 'current', domain }: VisibilityDashboardProps) {
+  // Build query params with domain for REAL competitor data
+  const domainParam = domain ? `&domain=${encodeURIComponent(domain)}` : '';
+  
+  // Fetch all visibility metrics with REAL competitor data
   const { data: mentionData, isLoading: mentionLoading } = useQuery({
-    queryKey: ['visibility-mention', brandId],
+    queryKey: ['visibility-mention', brandId, domain],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/visibility/mention-rate?brand_id=${brandId}`);
+      const res = await fetch(`${API_BASE_URL}/api/visibility/mention-rate?brand_id=${brandId}${domainParam}`);
       return res.json();
     }
   });
 
   const { data: positionData, isLoading: positionLoading } = useQuery({
-    queryKey: ['visibility-position', brandId],
+    queryKey: ['visibility-position', brandId, domain],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/visibility/position?brand_id=${brandId}`);
+      const res = await fetch(`${API_BASE_URL}/api/visibility/position?brand_id=${brandId}${domainParam}`);
       return res.json();
     }
   });
 
   const { data: sentimentData, isLoading: sentimentLoading } = useQuery({
-    queryKey: ['visibility-sentiment', brandId],
+    queryKey: ['visibility-sentiment', brandId, domain],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/visibility/sentiment?brand_id=${brandId}`);
+      const res = await fetch(`${API_BASE_URL}/api/visibility/sentiment?brand_id=${brandId}${domainParam}`);
       return res.json();
     }
   });
 
   const { data: shareData, isLoading: shareLoading } = useQuery({
-    queryKey: ['visibility-share'],
+    queryKey: ['visibility-share', domain],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/visibility/share-of-voice`);
+      const res = await fetch(`${API_BASE_URL}/api/visibility/share-of-voice?${domain ? `domain=${encodeURIComponent(domain)}` : ''}`);
       return res.json();
     }
   });
