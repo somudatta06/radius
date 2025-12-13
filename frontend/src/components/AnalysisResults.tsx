@@ -12,6 +12,7 @@ import { CalculationMethodology } from "@/components/CalculationMethodology";
 import { CompetitorDiscovery } from "@/components/CompetitorDiscovery";
 import { CompetitorComparison } from "@/components/CompetitorComparison";
 import { AccuracyIndicator } from "@/components/AccuracyIndicator";
+import { VisibilityDashboard } from "@/components/visibility/VisibilityDashboard";
 import { OpenInAIButton } from "@/components/OpenInAIButton";
 import { PDFReport } from "@/components/PDFReport";
 import { BriefSection } from "@/components/BriefSection";
