@@ -284,6 +284,77 @@ async def competitors_endpoint(
     from controllers.competitor_controller import discover_and_analyze_competitors
     return await discover_and_analyze_competitors(query, category, limit, analyze)
 
+@app.get("/api/visibility/mention-rate")
+async def get_mention_rate(
+    brand_id: str = Query("current", description="Brand ID"),
+    start_date: str = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(None, description="End date (YYYY-MM-DD)"),
+    provider: str = Query(None, description="AI provider filter")
+):
+    """Get mention rate metrics"""
+    from services.visibility_service import visibility_service
+    from datetime import datetime, timedelta
+    
+    # Parse dates
+    end = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=30)
+    
+    metrics = visibility_service.calculate_mention_rate(brand_id, start, end, provider)
+    rankings = visibility_service.get_mention_rate_rankings()
+    
+    return {
+        "metrics": metrics,
+        "rankings": rankings
+    }
+
+@app.get("/api/visibility/position")
+async def get_position_metrics(
+    brand_id: str = Query("current"),
+    start_date: str = Query(None),
+    end_date: str = Query(None)
+):
+    """Get average position metrics"""
+    from services.visibility_service import visibility_service
+    from datetime import datetime, timedelta
+    
+    end = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=30)
+    
+    metrics = visibility_service.calculate_average_position(brand_id, start, end)
+    rankings = visibility_service.get_position_rankings()
+    
+    return {
+        "metrics": metrics,
+        "rankings": rankings
+    }
+
+@app.get("/api/visibility/sentiment")
+async def get_sentiment_metrics(
+    brand_id: str = Query("current"),
+    start_date: str = Query(None),
+    end_date: str = Query(None)
+):
+    """Get sentiment analysis"""
+    from services.visibility_service import visibility_service
+    from datetime import datetime, timedelta
+    
+    end = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=30)
+    
+    return visibility_service.calculate_sentiment(brand_id, start, end)
+
+@app.get("/api/visibility/share-of-voice")
+async def get_share_of_voice():
+    """Get share of voice metrics"""
+    from services.visibility_service import visibility_service
+    return visibility_service.calculate_share_of_voice()
+
+@app.get("/api/visibility/geographic")
+async def get_geographic_performance():
+    """Get geographic performance data"""
+    from services.visibility_service import visibility_service
+    return visibility_service.get_geographic_performance()
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
