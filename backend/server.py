@@ -256,64 +256,33 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/api/competitors")
-async def discover_competitors(
-    keyword: str,
-    category: str = None,
-    limit: int = 10
+async def competitors_endpoint(
+    query: str = Query(..., description="Search query or keyword"),
+    category: str = Query(None, description="Optional category filter"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum results"),
+    analyze: bool = Query(False, description="Include AI analysis")
 ):
     """
-    Discover and analyze competitors using Tracxn + OpenAI
+    Discover competitors using Tracxn API
+    
+    Example: GET /api/competitors?query=AI%20marketing&limit=5
     
     Query params:
-    - keyword: Search term (e.g., "AI analytics")
+    - query: Search term (required, e.g., "AI analytics")
     - category: Optional category filter
-    - limit: Max results (default 10)
-    """
-    try:
-        from services.tracxn import tracxn_service
-        from services.openai_analysis import openai_analysis_service
-        
-        # Step 1: Get competitors from Tracxn
-        if category:
-            competitors = tracxn_service.discover_by_category(category, limit)
-        else:
-            competitors = tracxn_service.search_competitors(keyword, limit)
-        
-        if not competitors:
-            return {
-                "competitors": [],
-                "analysis": {
-                    "competitorScores": [],
-                    "summary": "No competitors found for the given search criteria.",
-                    "recommendedStrategy": "Try different keywords or categories.",
-                    "marketInsights": "",
-                    "keyOpportunities": []
-                },
-                "metadata": {
-                    "keyword": keyword,
-                    "category": category,
-                    "count": 0
-                }
-            }
-        
-        # Step 2: Analyze with OpenAI
-        analysis = openai_analysis_service.analyze_competitors(competitors)
-        
-        # Step 3: Combine and return
-        return {
-            "competitors": competitors,
-            "analysis": analysis,
-            "metadata": {
-                "keyword": keyword,
-                "category": category,
-                "count": len(competitors),
-                "analyzedAt": datetime.utcnow().isoformat()
-            }
+    - limit: Max results (1-50, default 10)
+    - analyze: Include OpenAI analysis (default false)
+    
+    Returns:
+        {
+            "success": true,
+            "competitors": [...],
+            "analysis": {...},  // if analyze=true
+            "metadata": {...}
         }
-        
-    except Exception as e:
-        print(f"Competitor discovery error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Discovery failed: {str(e)}")
+    """
+    from controllers.competitor_controller import discover_and_analyze_competitors
+    return await discover_and_analyze_competitors(query, category, limit, analyze)
 
 @app.get("/")
 async def root():
