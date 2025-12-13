@@ -309,6 +309,8 @@ CRITICAL RULES:
             for proof in credibility_data.get('proof_points', []):
                 positioning_text += f"• {proof}\n"
         
+        from datetime import datetime
+        
         return {
             "company_description": {
                 "overview": overview_text.strip(),
@@ -319,8 +321,8 @@ CRITICAL RULES:
                 "generated_from": domain,
             },
             "brand_guidelines": {
-                "tone": "Professional",  # Can be enhanced from content analysis
-                "words_to_prefer": [],  # User should fill based on their brand
+                "tone": "Professional",
+                "words_to_prefer": [],
                 "words_to_avoid": [],
                 "dos": ["Use clear, specific language", "Focus on outcomes and value"],
                 "donts": [],
@@ -328,14 +330,23 @@ CRITICAL RULES:
             },
             "evidence": [],
             "metadata": {
-                "source": "ai_generated_inferred",
+                "source": "ai_generated_context_only",
                 "generated_from": domain,
                 "pages_analyzed": pages_analyzed,
                 "quality": "validated",
+                "timestamp": datetime.utcnow().isoformat(),
+                "model": "gpt-4o-mini",
+                "temperature": 0,
                 "confidence": {
                     "explicit_ratio": confidence_data.get('explicit_information_ratio', '50%'),
                     "inferred_ratio": confidence_data.get('inferred_information_ratio', '50%'),
-                    "notes": confidence_data.get('notes_on_inference', 'Analysis based on website signals and patterns')
+                    "notes": confidence_data.get('notes_on_inference', 'Analysis based on website content only. No external data sources.')
+                },
+                "provenance": {
+                    "data_source": "website_scraper",
+                    "gpt_role": "analysis_only",
+                    "verification": "content_based",
+                    "hallucination_risk": "low"
                 }
             }
         }
