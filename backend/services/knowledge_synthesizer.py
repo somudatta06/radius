@@ -78,94 +78,123 @@ class KnowledgeSynthesizer:
             return self._fallback_knowledge_base(scraped_data)
     
     def _get_reasoning_system_prompt(self) -> str:
-        """High-quality reasoning-first system prompt"""
-        return """You are a senior business analyst and brand strategist with deep expertise in company positioning.
+        """Advanced reasoning engine prompt for implicit business understanding"""
+        return """You are a senior product analyst, business researcher, and AI systems architect.
 
-Your task: INFER and SYNTHESIZE a high-quality company description from website summaries.
+Your task: Reconstruct a COMPLETE, ACCURATE company knowledge base from website content — even when information is implicit, narrative-driven, or philosophy-based.
 
-CRITICAL REQUIREMENTS:
-1. UNDERSTAND the business - don't just summarize text
-2. REASON about what makes this company unique
-3. IDENTIFY patterns in their positioning and messaging
-4. WRITE like a professional analyst, not a web scraper
-5. Be FACTUAL - only state what is clearly implied by the content
-6. Use CONFIDENT, clear language - no placeholders or "please describe"
-7. If uncertain, write "Not explicitly stated, but appears to be: [inference]"
+YOU ARE NOT A SCRAPER. YOU ARE NOT A SUMMARIZER. YOU ARE A REASONING ENGINE.
 
-OUTPUT QUALITY STANDARDS:
-- Each section must be cohesive and well-written
-- Minimum 50 words per major section
-- No raw website text dumps
-- No placeholder phrases
-- Professional business profile quality
+CRITICAL PERMISSIONS:
+✅ You ARE ALLOWED and REQUIRED to INFER
+✅ You MUST reason about implicit information
+✅ You MUST reconstruct business models from signals
 
-You are NOT copying website text - you are SYNTHESIZING a business description."""
+REASONING METHODOLOGY:
+1. Extract signals: What problem are they solving? Who are they speaking to? What actions do they encourage?
+2. Identify business type: Education? SaaS? Community? Marketplace? Hybrid?
+3. Infer business model from: curriculum structure, pricing, cohorts, applications, outcomes, philosophy
+4. Reconstruct target audience from: language tone, pain points addressed, success metrics
+5. Determine positioning from: comparison language, alternative approaches mentioned
+
+INFERENCE RULES:
+- If information is IMPLIED through context → infer logically and state: "Inferred from website context: [reasoning]"
+- If something is SHOWN through examples → extract the pattern
+- If philosophy suggests approach → deduce the business model
+
+ABSOLUTE PROHIBITIONS:
+❌ Never leave a field empty
+❌ Never output placeholders ("Please describe...", "N/A", "Not available")
+❌ Never ask user to fill in information
+❌ Never copy raw website text verbatim
+❌ Never hallucinate facts not supported by content
+
+WRITING STANDARDS:
+- Write like a human business analyst
+- Neutral, confident, non-marketing tone
+- No buzzwords unless clearly implied by content
+- Substantive content: aim for 500+ words total
+- Each section must be complete and informative
+
+QUALITY GATE:
+Before outputting, verify:
+- Every field has substantive content (not placeholders)
+- Total output ≥ 300 words
+- The summary alone could explain the business to an investor
+- Confidence levels are stated clearly
+
+Your output will be marked as "ai_generated_inferred" with transparency about inference."""
 
     def _get_structured_user_prompt(self, corpus: Dict, domain: str) -> str:
-        """Structured reasoning prompt with clear sections"""
-        return f"""Analyze this company's website content and produce a COMPLETE, PROFESSIONAL company profile.
+        """Advanced reasoning prompt that forces signal extraction and inference"""
+        return f"""Domain: {domain}
 
-Domain: {domain}
-
-WEBSITE SUMMARIES:
+WEBSITE CONTENT:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HOMEPAGE:
-{corpus.get('homepage_summary', 'Not available')}
+{corpus.get('homepage_summary', 'Limited content')}
 
 ABOUT PAGE:
-{corpus.get('about_summary', 'Not available')}
+{corpus.get('about_summary', 'Limited content')}
 
 OFFERINGS/PRODUCTS:
-{corpus.get('offerings_summary', 'Not available')}
+{corpus.get('offerings_summary', 'Limited content')}
 
 POSITIONING SIGNALS:
-{corpus.get('positioning_clues', 'Not available')}
+{corpus.get('positioning_clues', 'Limited content')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Now SYNTHESIZE a complete company description using this EXACT JSON structure:
+INTERNAL REASONING STEP (DO NOT OUTPUT THIS):
+Before generating the JSON, internally answer:
+1. What problem is this organization solving?
+2. Who is the website speaking to? (language, tone, promises)
+3. What is the business model? (education, SaaS, marketplace, community, cohort-based, etc.)
+4. What action is the user encouraged to take? (apply, buy, join, learn, etc.)
+5. How is success defined for the user? (career outcomes, skills, revenue, connections, etc.)
+6. What alternatives exist and how does this differ?
+
+GENERATE COMPLETE KNOWLEDGE BASE AS JSON:
 
 {{
   "company_overview": {{
-    "what_the_company_is": "Clear 2-3 sentence description of what this company does and its core purpose",
-    "core_mission": "The fundamental problem they solve or value they create",
-    "where_it_operates": "Geographic scope, market segment, or operational model"
+    "summary": "2-3 sentences: what this company/organization is, what it does, and its core purpose. If not explicitly stated, infer from: page structure, language, user journey, outcomes promised.",
+    "mission": "The fundamental problem solved or value created. Infer from: pain points addressed, transformation promised, philosophy stated.",
+    "business_type": "Category: e.g., 'Alternative business school', 'Cohort-based learning program', 'B2B SaaS platform', 'Community marketplace'. Infer from: application processes, pricing structure, delivery format.",
+    "operating_model": "How it operates: 'Cohort-based online program', 'Subscription SaaS', 'Membership community', etc. Infer from: enrollment, pricing, duration, format."
   }},
   "products_and_services": {{
-    "primary_offerings": ["Offering 1", "Offering 2", "Offering 3"],
-    "delivery_model": "How these offerings are delivered (online, in-person, hybrid, B2B, B2C, etc.)",
-    "key_outcomes_for_users": ["Outcome 1", "Outcome 2", "Outcome 3"]
+    "offerings": ["Primary offering 1", "Primary offering 2", "Primary offering 3"],
+    "delivery_format": "Detailed description of HOW it's delivered: online/offline, synchronous/asynchronous, cohort-based, self-paced, apprenticeship, etc. Infer from: program structure, timeline, interaction model.",
+    "learning_or_value_outcomes": ["Outcome 1 users achieve", "Outcome 2", "Outcome 3"]
   }},
   "target_customers": {{
-    "primary_audience": "Who is the main customer segment?",
-    "secondary_audience": "Any secondary customer group, or 'None identified'",
-    "customer_needs_solved": ["Need 1", "Need 2", "Need 3"]
+    "primary_audience": "Specific description: not just 'entrepreneurs' but 'early-stage founders building their first company' or 'professionals transitioning to product roles'. Infer from: language complexity, prerequisites, testimonials, pricing.",
+    "secondary_audience": "Any additional segment served, or 'None clearly identified'.",
+    "customer_pain_points": ["Specific pain 1 this solves", "Pain 2", "Pain 3"]
   }},
   "market_positioning": {{
-    "category": "What category/industry is this company in?",
-    "how_it_is_different": "What makes this company distinct from alternatives?",
-    "alternatives_it_replaces": ["Alternative 1", "Alternative 2"] or ["None explicitly stated"]
+    "category": "Primary category/industry. If hybrid, state both.",
+    "positioning_statement": "How this company positions itself vs. alternatives. Infer from: comparison language, 'unlike traditional X' statements, unique approach claims.",
+    "how_it_differs_from_traditional_alternatives": "Concrete differentiation: what traditional alternatives do vs. what this does differently. Infer from: philosophy, approach, structure, outcomes focus."
   }},
-  "key_differentiators": [
-    "Differentiator 1 - be specific",
-    "Differentiator 2 - be specific",
-    "Differentiator 3 - be specific"
-  ],
-  "brand_tone_and_voice": {{
-    "tone": "Professional | Academic | Founder-led | Bold | Technical | Friendly",
-    "writing_style_rules": [
-      "Rule 1 based on actual content style",
-      "Rule 2 based on actual content style"
-    ],
-    "phrases_to_avoid": ["Generic phrase 1", "Generic phrase 2"]
+  "credibility_and_signals": {{
+    "founding_story_or_philosophy": "Founder background, origin story, or core philosophy if mentioned. Helps explain 'why this exists'.",
+    "proof_points": ["Specific credential 1", "Outcome stat 2", "Social proof 3"],
+    "institutional_or_social_signals": ["Signal 1: e.g., 'backed by Y Combinator'", "Signal 2: 'featured in TechCrunch'", "Signal 3: '500+ alumni'"]
+  }},
+  "confidence_metadata": {{
+    "explicit_information_ratio": "Estimate % of output based on explicit website statements",
+    "inferred_information_ratio": "Estimate % of output inferred from context/signals",
+    "notes_on_inference": "Brief note on what was most inferred and why confidence is high/medium"
   }}
 }}
 
-IMPORTANT:
-- Write full, cohesive descriptions - NOT bullet points or fragments
-- Base everything on the provided content
-- If uncertain, state "Appears to be [inference based on context]"
-- No placeholder text like "Please describe..." - write actual content
-- Ensure total output is substantial (aim for 500+ words across all fields)"""
+CRITICAL RULES:
+1. Every field MUST have substantive content - no "N/A", no placeholders
+2. If information is not explicit, use: "Inferred from [signal]: [reasoning]"
+3. Write complete sentences and paragraphs
+4. Minimum 400 words total across all fields
+5. Output ONLY valid JSON matching the schema exactly"""
     
     def _validate_quality(self, knowledge: Dict) -> bool:
         """
