@@ -36,9 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sanitizedBrandName = brandName.replace(/[\n\r\t]/g, ' ').trim();
       const sanitizedDomain = domain.replace(/[\n\r\t]/g, ' ').trim();
 
-      const { OpenAI } = await import('openai');
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
       });
 
       // Compute strongest and weakest platforms server-side
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ).join(', ');
 
       // Build prompt with computed data to prevent prompt injection
-      const prompt = `You are an AI visibility expert. Generate a concise, professional brief (2-3 sentences) analyzing the brand's AI platform performance.
+      const prompt = `Generate a concise, professional brief (2-3 sentences) analyzing the brand's AI platform performance.
 
 Brand: ${sanitizedBrandName}
 Domain: ${sanitizedDomain}
@@ -67,17 +67,17 @@ Generate a brief that:
 
 Keep it professional and data-driven. Use only the data provided above. Do not make assumptions.`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      const completion = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 200,
+        temperature: 0.7,
+        system: "You are an AI visibility analysis expert. Provide clear, factual insights based only on the data provided.",
         messages: [
-          { role: "system", content: "You are an AI visibility analysis expert. Provide clear, factual insights based only on the data provided." },
           { role: "user", content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 200,
       });
 
-      const brief = completion.choices[0]?.message?.content || "Unable to generate brief at this time.";
+      const brief = completion.content[0].type === 'text' ? completion.content[0].text : "Unable to generate brief at this time.";
 
       res.json({ brief });
     } catch (error) {
