@@ -1,15 +1,18 @@
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional, List, Dict, Any
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import anthropic
 import requests
 from bs4 import BeautifulSoup
 import asyncio
 from dotenv import load_dotenv
+import hashlib
+import secrets
+from uuid import uuid4
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,7 +24,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://radius-analytics.preview.emergentagent.com"
+        "https://radius-analytics.preview.emergentagent.com",
+        "https://knowledge-hub-303.preview.emergentagent.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -36,6 +40,142 @@ db = client.radius_db
 # Anthropic client (initialize lazily to avoid startup errors)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 anthropic_client = None  # Will initialize on first use if needed
+
+# In-memory session storage (for simplicity - use Redis in production)
+sessions: Dict[str, Dict] = {}
+
+# Auth Models
+class SignupRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+
+# Helper functions for auth
+def hash_password(password: str) -> str:
+    """Hash password with salt"""
+    salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((password + salt).encode()).hexdigest()
+    return f"{salt}:{hashed}"
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Verify password against stored hash"""
+    try:
+        salt, hashed = stored_hash.split(":")
+        return hashlib.sha256((password + salt).encode()).hexdigest() == hashed
+    except:
+        return False
+
+def create_session(user_id: str) -> str:
+    """Create a session token"""
+    token = secrets.token_urlsafe(32)
+    sessions[token] = {"user_id": user_id, "created_at": datetime.now(timezone.utc)}
+    return token
+
+def get_session_user(token: str) -> Optional[str]:
+    """Get user ID from session token"""
+    session = sessions.get(token)
+    if session:
+        return session["user_id"]
+    return None
+
+# Auth Routes
+@app.post("/api/auth/signup")
+async def signup(request: SignupRequest, response: Response):
+    """Create a new user account"""
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": request.email}, {"_id": 0})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Create user
+    user_id = str(uuid4())
+    user = {
+        "id": user_id,
+        "name": request.name,
+        "email": request.email,
+        "password_hash": hash_password(request.password),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user)
+    
+    # Create session
+    token = create_session(user_id)
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        secure=False,  # Set to True in production with HTTPS
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7  # 7 days
+    )
+    
+    return {"id": user_id, "name": request.name, "email": request.email}
+
+@app.post("/api/auth/login")
+async def login(request: LoginRequest, response: Response):
+    """Login with email and password"""
+    # Find user
+    user = await db.users.find_one({"email": request.email}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Verify password
+    if not verify_password(request.password, user.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Create session
+    token = create_session(user["id"])
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7
+    )
+    
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+@app.post("/api/auth/logout")
+async def logout(request: Request, response: Response):
+    """Logout current user"""
+    token = request.cookies.get("session_token")
+    if token and token in sessions:
+        del sessions[token]
+    
+    response.delete_cookie("session_token")
+    return {"message": "Logged out successfully"}
+
+@app.get("/api/auth/me")
+async def get_current_user(request: Request):
+    """Get current authenticated user"""
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user_id = get_session_user(token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
 
 # Models
 class AnalyzeRequest(BaseModel):
