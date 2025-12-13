@@ -3,31 +3,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, CheckCircle2, ExternalLink, Sparkles, AlertCircle } from "lucide-react";
+import { BookOpen, CheckCircle2, ExternalLink, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface KnowledgeBaseSummaryPanelProps {
   brandName?: string;
-  domain?: string;  // Added domain prop to fetch domain-specific KB
+  domain?: string;
+  analysisId?: string;  // Per-analysis KB (PREFERRED)
 }
 
-export function KnowledgeBaseSummaryPanel({ brandName, domain }: KnowledgeBaseSummaryPanelProps) {
+export function KnowledgeBaseSummaryPanel({ brandName, domain, analysisId }: KnowledgeBaseSummaryPanelProps) {
   const [, navigate] = useLocation();
 
-  // Use domain as company_id for domain-specific KB
-  const companyId = domain?.replace(/\./g, '_') || 'default';
+  // PRIORITY: Use analysisId for per-analysis KB (NO CACHE REUSE)
+  // Falls back to domain for backward compatibility
+  const companyId = analysisId || domain?.replace(/\./g, '_') || 'default';
 
-  // Fetch knowledge base data for this specific domain
-  const { data, isLoading, error } = useQuery({
+  // Fetch knowledge base data with NO CACHING
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["/api/knowledge-base", companyId],
     queryFn: async () => {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
-      const res = await fetch(`${backendUrl}/api/knowledge-base?company_id=${companyId}`);
+      // Add cache-busting headers
+      const res = await fetch(`${backendUrl}/api/knowledge-base?company_id=${companyId}`, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "X-Request-Nonce": `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        },
+      });
       if (!res.ok) {
         throw new Error(`Failed to fetch: ${res.status}`);
       }
       return await res.json();
     },
+    staleTime: 0, // Always fetch fresh
+    gcTime: 0, // Don't cache in memory
   });
 
   if (isLoading) {
