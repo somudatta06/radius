@@ -37,8 +37,11 @@ export default defineConfig(async ({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
-    },
-    server: {
+      allowedHosts: [
+        'github-importer-10.preview.emergentagent.com',
+        'localhost',
+        '.emergentagent.com'
+      ],
       fs: {
         strict: true,
         deny: ["**/.*"],
