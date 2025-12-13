@@ -49,8 +49,8 @@ class KnowledgeSynthesizer:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
-                max_tokens=3000,  # Increased for detailed output
+                temperature=0,  # CRITICAL: Zero temperature for factual, deterministic output
+                max_tokens=3000,
                 response_format={"type": "json_object"}
             )
             

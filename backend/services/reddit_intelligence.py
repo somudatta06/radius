@@ -226,7 +226,7 @@ Return JSON:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3,
+                temperature=0,  # CRITICAL: Zero temperature for factual analysis only
                 max_tokens=200,
                 response_format={"type": "json_object"}
             )
