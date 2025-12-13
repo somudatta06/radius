@@ -224,7 +224,17 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
                 "estimatedImpact": "+15-20 points"
             })
         
-        # Competitors
+        # Identify real competitors using AI
+        from services.competitor_intelligence import competitor_service
+        
+        identified_competitors = competitor_service.identify_competitors(
+            company_name=brand_info['name'],
+            domain=brand_info['domain'],
+            description=brand_info['description'],
+            industry=brand_info.get('industry', 'Technology')
+        )
+        
+        # Build competitors list with current brand first
         competitors = [
             {
                 "rank": 1,
@@ -236,6 +246,20 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
                 "isCurrentBrand": True
             }
         ]
+        
+        # Add identified competitors with simulated scores
+        for idx, comp in enumerate(identified_competitors, start=2):
+            # Simulate competitive scores (slightly varied from main brand)
+            comp_score = overall_score + ((idx - 2) * -3)  # Slight degradation for lower ranks
+            competitors.append({
+                "rank": idx,
+                "name": comp['name'],
+                "domain": comp['domain'],
+                "score": max(comp_score, 40),  # Minimum score of 40
+                "marketOverlap": max(100 - (idx * 10), 50),  # Decreasing overlap
+                "strengths": [comp.get('description', 'Competitor in same space')],
+                "isCurrentBrand": False
+            })
         
         # GEO Metrics
         geo_metrics = {
