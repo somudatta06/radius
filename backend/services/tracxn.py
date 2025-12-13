@@ -107,7 +107,11 @@ class TracxnService:
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Tracxn category discovery error: {str(e)}")
-            return []
+            logger.info(f"Using mock data for category: {category}")
+            
+            # Fallback to mock data
+            from services.tracxn_mock import get_mock_competitors
+            return get_mock_competitors(category, limit)
     
     def _normalize_company(self, raw_data: Dict) -> Dict:
         """
