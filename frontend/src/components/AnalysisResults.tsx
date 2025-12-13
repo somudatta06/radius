@@ -290,7 +290,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
 
       {activeTab === "visibility" && (
         <div className="space-y-6" data-testid="content-visibility">
-          <VisibilityDashboard brandId={brandInfo?.name} />
+          <VisibilityDashboard brandId={brandInfo?.name} domain={domain} />
         </div>
       )}
 
