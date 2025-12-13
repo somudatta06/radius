@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import LandingNav from "@/components/LandingNav";
 import HeroSection from "@/components/HeroSection";
@@ -8,73 +9,82 @@ import VideoSection from "@/components/VideoSection";
 import WhatIsGEOSection from "@/components/WhatIsGEOSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
-import DashboardHeader from "@/components/DashboardHeader";
-import AnalysisResults from "@/components/AnalysisResults";
 import type { AnalysisResult } from "@/types/schema";
 
+/**
+ * Landing Page (/)
+ * 
+ * ARCHITECTURAL RULES:
+ * - ONLY accepts website URL input
+ * - On submit: Generate analysisId → Redirect to /analysis/:analysisId
+ * - NO analysis UI here
+ * - NO caching of previous results
+ */
 export default function Home() {
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [pendingResult, setPendingResult] = useState<AnalysisResult | null>(null);
+  const [, navigate] = useLocation();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const analyzeMutation = useMutation({
     mutationFn: async (url: string) => {
-      const response = await apiRequest('POST', '/api/analyze', { url });
+      // Add cache-busting headers to ensure fresh analysis
+      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
+      const response = await fetch(`${backendUrl}/api/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "X-Request-Nonce": `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.status}`);
+      }
+      
       return await response.json() as AnalysisResult;
     },
     onSuccess: (data) => {
-      // Show results immediately after analysis completes
-      setAnalysisResult(data);
+      // REDIRECT to analysis page with analysisId
+      // NO analysis UI on landing page
+      if (data.analysisId) {
+        console.log(`✅ Analysis complete - redirecting to /analysis/${data.analysisId}`);
+        navigate(`/analysis/${data.analysisId}`);
+      } else {
+        console.error("❌ No analysisId returned from API");
+        setIsAnalyzing(false);
+      }
     },
     onError: (error: Error) => {
-      // Reset state on error
-      setAnalysisResult(null);
-      setPendingResult(null);
-      console.error('Analysis failed:', error.message);
+      console.error('❌ Analysis failed:', error.message);
+      setIsAnalyzing(false);
     },
   });
 
   const handleAnalyze = (url: string) => {
+    setIsAnalyzing(true);
     analyzeMutation.mutate(url);
   };
 
-  const handleNewAnalysis = useCallback(() => {
-    setAnalysisResult(null);
-    setPendingResult(null);
-  }, []);
-
   const handleTimelineComplete = useCallback(() => {
-    // Show results only after timeline exit animation completes
-    setPendingResult(current => {
-      if (current) {
-        setAnalysisResult(current);
-        return null;
-      }
-      return current;
-    });
+    // Timeline animation complete - analysis should redirect
   }, []);
 
-  if (!analysisResult) {
-    return (
-      <>
-        <LandingNav />
-        <HeroSection 
-          onAnalyze={handleAnalyze} 
-          isLoading={analyzeMutation.isPending || !!pendingResult}
-          onTimelineComplete={handleTimelineComplete}
-        />
-        <LLMStatementSection />
-        <VideoSection />
-        <WhatIsGEOSection />
-        <FeaturesSection />
-        <Footer />
-      </>
-    );
-  }
-
+  // Landing page ONLY - no analysis results rendered here
   return (
-    <div className="min-h-screen bg-white">
-      <DashboardHeader websiteUrl={analysisResult.url} onNewAnalysis={handleNewAnalysis} />
-      <AnalysisResults data={analysisResult} />
-    </div>
+    <>
+      <LandingNav />
+      <HeroSection 
+        onAnalyze={handleAnalyze} 
+        isLoading={analyzeMutation.isPending || isAnalyzing}
+        onTimelineComplete={handleTimelineComplete}
+      />
+      <LLMStatementSection />
+      <VideoSection />
+      <WhatIsGEOSection />
+      <FeaturesSection />
+      <Footer />
+    </>
   );
 }
