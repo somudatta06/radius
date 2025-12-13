@@ -11,13 +11,33 @@ class VisibilityService:
     """Service for calculating visibility metrics"""
     
     def __init__(self):
-        self.mock_competitors = [
-            {"id": "comp1", "name": "DataRobot", "is_manual": False},
-            {"id": "comp2", "name": "Alteryx", "is_manual": False},
-            {"id": "comp3", "name": "Tableau", "is_manual": False},
-            {"id": "comp4", "name": "Looker", "is_manual": False},
+        # Competitors will be dynamically set from analysis
+        self._competitors = []
+        self.fallback_competitors = [
+            {"id": "comp1", "name": "Competitor A", "is_manual": False},
+            {"id": "comp2", "name": "Competitor B", "is_manual": False},
+            {"id": "comp3", "name": "Competitor C", "is_manual": False},
+            {"id": "comp4", "name": "Competitor D", "is_manual": False},
             {"id": "comp5", "name": "You", "is_manual": False, "is_current": True},
         ]
+    
+    def set_competitors(self, competitors: List[Dict]):
+        """Set real competitors from analysis"""
+        self._competitors = [
+            {
+                "id": f"comp{c.get('rank', idx)}",
+                "name": c.get('name', 'Unknown'),
+                "is_manual": False,
+                "is_current": c.get('isCurrentBrand', False)
+            }
+            for idx, c in enumerate(competitors, 1)
+        ]
+        print(f"✅ Visibility service updated with {len(self._competitors)} competitors")
+    
+    @property
+    def mock_competitors(self):
+        """Get competitors (real if set, fallback otherwise)"""
+        return self._competitors if self._competitors else self.fallback_competitors
     
     def calculate_mention_rate(
         self,
