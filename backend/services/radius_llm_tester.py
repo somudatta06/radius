@@ -61,7 +61,7 @@ class RadiusLLMTester:
         if self.gemini_key:
             try:
                 genai.configure(api_key=self.gemini_key)
-                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
             except Exception as e:
                 print(f"⚠️ Gemini client init error: {e}")
     
