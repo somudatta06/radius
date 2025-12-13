@@ -33,9 +33,9 @@ MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGO_URL)
 db = client.radius_db
 
-# Anthropic client
+# Anthropic client (initialize lazily to avoid startup errors)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+anthropic_client = None  # Will initialize on first use if needed
 
 # Models
 class AnalyzeRequest(BaseModel):
