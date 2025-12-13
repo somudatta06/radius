@@ -124,8 +124,8 @@ export function CompanyDescriptionTab({ data }: CompanyDescriptionTabProps) {
                 onChange={(e) =>
                   setEditValues({ ...editValues, [field]: e.target.value })
                 }
-                rows={6}
-                className="w-full"
+                rows={8}
+                className="w-full font-mono text-sm"
               />
               <div className="flex items-center gap-2 flex-wrap">
                 <Button
@@ -162,9 +162,17 @@ export function CompanyDescriptionTab({ data }: CompanyDescriptionTabProps) {
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {currentValue || "No content yet. Click edit to add."}
-            </p>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {currentValue ? (
+                currentValue.split('\n').map((line, idx) => (
+                  <p key={idx} className={line.startsWith('•') ? 'ml-4' : ''}>
+                    {line || <br />}
+                  </p>
+                ))
+              ) : (
+                <p className="text-muted-foreground italic">No content yet. Click edit to add.</p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
