@@ -289,7 +289,7 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
 
       {activeTab === "knowledge-base" && (
         <div className="space-y-6" data-testid="content-knowledge-base">
-          <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} domain={domain} />
+          <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} domain={domain} analysisId={dataId} />
         </div>
       )}
 
@@ -301,7 +301,7 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
 
       {activeTab === "reddit" && (
         <div className="space-y-6" data-testid="content-reddit">
-          <RedditAnalyticsTab brandName={brandInfo?.name} />
+          <RedditAnalyticsTab brandName={brandInfo?.name} analysisId={dataId} />
         </div>
       )}
 
