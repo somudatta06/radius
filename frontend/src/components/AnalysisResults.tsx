@@ -267,6 +267,13 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
           />
         </div>
       )}
+
+      {activeTab === "visibility" && (
+        <div className="space-y-6" data-testid="content-visibility">
+          <VisibilityDashboard brandId={brandInfo?.name} />
+        </div>
+      )}
+
       {activeTab === "recommendations" && (
         <div className="space-y-6" data-testid="content-recommendations">
           <h2 className="text-2xl font-bold">AI-Generated Recommendations</h2>
