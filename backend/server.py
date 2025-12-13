@@ -429,6 +429,27 @@ async def delete_evidence(
     success = await knowledge_service.delete_evidence(company_id, evidence_id)
     return {"success": success}
 
+@app.post("/api/knowledge-base/regenerate")
+async def regenerate_knowledge_base(
+    website_url: str = Query(..., description="Website URL to analyze"),
+    company_id: str = Query("default")
+):
+    """
+    Regenerate Knowledge Base from website
+    Scrapes website and uses GPT to generate fresh KB content
+    """
+    from services.knowledge_service import knowledge_service
+    
+    try:
+        knowledge = await knowledge_service.generate_from_website(website_url, company_id)
+        return {
+            "success": True,
+            "knowledge_base": knowledge,
+            "message": "Knowledge Base regenerated successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Regeneration failed: {str(e)}")
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
