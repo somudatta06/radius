@@ -343,40 +343,45 @@ async def health_check():
 
 @app.post("/api/analyze")
 async def analyze_website_endpoint(request: AnalyzeRequest):
-    """Analyze a website for AI visibility"""
+    """
+    Analyze a website for AI visibility
+    
+    ARCHITECTURAL RULES:
+    - Generate unique analysisId for each run
+    - NO CACHING - fresh data every time
+    - Store all data with analysisId and timestamps
+    - Return analysisId for redirect to /analysis/:analysisId
+    """
     try:
+        # Generate unique analysisId (CRITICAL - no cache reuse)
+        analysis_id = f"analysis_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{str(uuid4())[:8]}"
+        analysis_timestamp = datetime.now(timezone.utc).isoformat()
+        
+        print(f"🔍 Starting FRESH analysis: {analysis_id}")
+        print(f"   Timestamp: {analysis_timestamp}")
+        
         url = request.url
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
-        # Extract domain for domain-specific KB storage
+        # Extract domain
         from urllib.parse import urlparse
-        parsed_url_for_kb = urlparse(url)
-        domain_for_kb = parsed_url_for_kb.netloc.replace('www.', '').replace('.', '_')
+        parsed_url = urlparse(url)
+        domain_name = parsed_url.netloc.replace('www.', '')
         
-        # AUTOMATIC KNOWLEDGE BASE GENERATION (per-domain)
-        # Generate KB from website (fire and forget - runs in background)
+        # KNOWLEDGE BASE GENERATION (per-analysisId, NOT per-domain)
+        # This ensures fresh KB for every analysis
         try:
             from services.knowledge_service import knowledge_service
-            # Start KB generation using domain as company_id for domain-specific KB
-            task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id=domain_for_kb))
-            # Optional: Add callback to log completion
-            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {url} (company_id: {domain_for_kb})"))
+            # Start KB generation using analysisId for per-analysis KB
+            task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id=analysis_id))
+            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {analysis_id}"))
         except Exception as kb_error:
             print(f"⚠️  KB generation failed (non-critical): {str(kb_error)}")
         
-        # Scrape website
+        # FRESH WEBSITE SCRAPE (no cache)
+        print(f"🌐 Fresh scraping website: {url}")
         website_info = scrape_website(url)
-        
-        # Extract brand info from website data
-        from urllib.parse import urlparse
-        parsed_url = urlparse(url)
-        domain_name = parsed_url.netloc.replace('www.', '')
-        
-        # Extract brand info with robust fallbacks
-        from urllib.parse import urlparse
-        parsed_url = urlparse(url)
-        domain_name = parsed_url.netloc.replace('www.', '')
         
         # Ensure brand name is never "Error" or empty
         brand_name = website_info['title']
