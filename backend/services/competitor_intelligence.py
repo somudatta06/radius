@@ -169,34 +169,47 @@ Return 5 competitors ranked by how DIRECTLY they compete (most similar first).""
             return self._fallback_competitors(company_name, industry)
     
     def _fallback_competitors(self, company_name: str, industry: str) -> List[Dict]:
-        """Fallback competitors when GPT unavailable"""
-        # Generic tech competitors as fallback
-        return [
-            {
-                "name": "Competitor A",
-                "domain": "competitor-a.com",
-                "description": f"Leading {industry} company",
-                "reasoning": "Market leader in similar space"
-            },
-            {
-                "name": "Competitor B",
-                "domain": "competitor-b.com",
-                "description": f"{industry} platform provider",
-                "reasoning": "Offers similar products"
-            },
-            {
-                "name": "Competitor C",
-                "domain": "competitor-c.com",
-                "description": f"{industry} solution",
-                "reasoning": "Adjacent market player"
-            },
-            {
-                "name": "Competitor D",
-                "domain": "competitor-d.com",
-                "description": f"{industry} service",
-                "reasoning": "Emerging competitor"
-            }
-        ]
+        """Fallback competitors when GPT unavailable - uses industry-specific defaults"""
+        # Try to provide industry-relevant fallbacks instead of generic names
+        industry_lower = industry.lower()
+        
+        # Industry-specific fallback competitors
+        if 'fintech' in industry_lower or 'finance' in industry_lower or 'trading' in industry_lower or 'investment' in industry_lower:
+            return [
+                {"name": "Groww", "domain": "groww.in", "description": "Investment platform", "reasoning": "Similar financial services"},
+                {"name": "Upstox", "domain": "upstox.com", "description": "Trading platform", "reasoning": "Similar trading services"},
+                {"name": "5Paisa", "domain": "5paisa.com", "description": "Discount broker", "reasoning": "Similar brokerage services"},
+                {"name": "Angel One", "domain": "angelone.in", "description": "Full-service broker", "reasoning": "Similar investment services"},
+            ]
+        elif 'education' in industry_lower or 'business school' in industry_lower or 'learning' in industry_lower:
+            return [
+                {"name": "Coursera", "domain": "coursera.org", "description": "Online learning platform", "reasoning": "Similar education services"},
+                {"name": "Udemy", "domain": "udemy.com", "description": "Online courses", "reasoning": "Similar learning platform"},
+                {"name": "LinkedIn Learning", "domain": "linkedin.com/learning", "description": "Professional development", "reasoning": "Similar professional education"},
+                {"name": "edX", "domain": "edx.org", "description": "Online education", "reasoning": "Similar course platform"},
+            ]
+        elif 'ecommerce' in industry_lower or 'retail' in industry_lower or 'shopping' in industry_lower:
+            return [
+                {"name": "Amazon", "domain": "amazon.com", "description": "E-commerce platform", "reasoning": "Similar retail services"},
+                {"name": "Flipkart", "domain": "flipkart.com", "description": "Online shopping", "reasoning": "Similar e-commerce platform"},
+                {"name": "Myntra", "domain": "myntra.com", "description": "Fashion retail", "reasoning": "Similar online retail"},
+                {"name": "Shopify", "domain": "shopify.com", "description": "E-commerce solutions", "reasoning": "Similar commerce platform"},
+            ]
+        elif 'saas' in industry_lower or 'software' in industry_lower or 'tech' in industry_lower:
+            return [
+                {"name": "Salesforce", "domain": "salesforce.com", "description": "CRM software", "reasoning": "Leading SaaS provider"},
+                {"name": "HubSpot", "domain": "hubspot.com", "description": "Marketing software", "reasoning": "Similar software services"},
+                {"name": "Slack", "domain": "slack.com", "description": "Communication platform", "reasoning": "Similar tech product"},
+                {"name": "Notion", "domain": "notion.so", "description": "Productivity software", "reasoning": "Similar software tool"},
+            ]
+        else:
+            # Generic fallbacks with more professional names
+            return [
+                {"name": f"Top {industry} Provider 1", "domain": "competitor1.com", "description": f"Leading {industry} company", "reasoning": "Market leader"},
+                {"name": f"Top {industry} Provider 2", "domain": "competitor2.com", "description": f"{industry} solution provider", "reasoning": "Major player"},
+                {"name": f"Top {industry} Provider 3", "domain": "competitor3.com", "description": f"{industry} platform", "reasoning": "Established competitor"},
+                {"name": f"Emerging {industry} Company", "domain": "competitor4.com", "description": f"Growing {industry} service", "reasoning": "Rising competitor"},
+            ]
 
 # Singleton
 competitor_service = CompetitorIntelligenceService()
