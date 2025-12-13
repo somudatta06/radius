@@ -92,19 +92,27 @@ Return competitors ranked by relevance (most relevant first)."""
                 response_format={"type": "json_object"}
             )
             
-            result = json.loads(response.choices[0].message.content)
+            raw_response = response.choices[0].message.content
+            print(f"🔍 GPT response length: {len(raw_response)} chars")
+            
+            result = json.loads(raw_response)
             competitors = result.get('competitors', [])
             
             # Validate we got reasonable data
             if len(competitors) < 3:
                 print(f"⚠️  GPT returned {len(competitors)} competitors - using fallback")
+                print(f"Response: {raw_response[:200]}")
                 return self._fallback_competitors(company_name, industry)
             
             print(f"✅ Identified {len(competitors)} competitors for {company_name}")
+            for comp in competitors:
+                print(f"   - {comp['name']}")
             return competitors[:5]  # Limit to 5
         
         except Exception as e:
             print(f"❌ Competitor identification error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return self._fallback_competitors(company_name, industry)
     
     def _fallback_competitors(self, company_name: str, industry: str) -> List[Dict]:
