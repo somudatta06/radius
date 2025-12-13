@@ -17,12 +17,13 @@ import { OpenInAIButton } from "@/components/OpenInAIButton";
 import { PDFReport } from "@/components/PDFReport";
 import { BriefSection } from "@/components/BriefSection";
 import { JavaScriptHeavyErrorModal } from "@/components/JavaScriptHeavyErrorModal";
+import { KnowledgeBaseSummaryPanel } from "@/components/KnowledgeBaseSummaryPanel";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
 import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
+type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
 
 interface TabConfig {
   id: Tab;
@@ -31,6 +32,7 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { id: "overview", label: "Overview" },
+  { id: "knowledge-base", label: "Knowledge Base" },
   { id: "visibility", label: "Visibility" },
   { id: "recommendations", label: "Recommendations" },
   { id: "score-breakdown", label: "Score Breakdown" },
