@@ -1,4 +1,4 @@
-import CompetitorDiscovery from '@/components/CompetitorDiscovery';
+import { CompetitorDiscovery } from '@/components/CompetitorDiscovery';
 import LandingNav from '@/components/LandingNav';
 import Footer from '@/components/Footer';
 
