@@ -68,7 +68,7 @@ Generate a brief that:
 Keep it professional and data-driven. Use only the data provided above. Do not make assumptions.`;
 
       const completion = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20240620",
+        model: "claude-sonnet-4-5",
         max_tokens: 200,
         temperature: 0.7,
         system: "You are an AI visibility analysis expert. Provide clear, factual insights based only on the data provided.",
