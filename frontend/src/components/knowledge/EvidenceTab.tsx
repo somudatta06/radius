@@ -178,8 +178,12 @@ export function EvidenceTab({ data }: EvidenceTabProps) {
                 Cancel
               </Button>
               <Button
-                onClick={() => addMutation.mutate(newEvidence)}
-                disabled={addMutation.isPending || !newEvidence.title || !newEvidence.content}
+                onClick={() => {
+                  console.log("Add Evidence clicked, newEvidence:", newEvidence);
+                  addMutation.mutate(newEvidence);
+                }}
+                disabled={addMutation.isPending || !newEvidence.title.trim() || !newEvidence.content.trim()}
+                data-testid="submit-evidence"
               >
                 Add Evidence
               </Button>
