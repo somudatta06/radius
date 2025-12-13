@@ -41,14 +41,27 @@ class RadiusLLMTester:
     def _init_clients(self):
         """Initialize LLM clients"""
         if self.openai_key:
-            self.openai_client = OpenAI(api_key=self.openai_key)
+            try:
+                self.openai_client = OpenAI(api_key=self.openai_key)
+            except Exception as e:
+                print(f"⚠️ OpenAI client init error: {e}")
         
         if self.anthropic_key:
-            self.anthropic_client = anthropic.Anthropic(api_key=self.anthropic_key)
+            try:
+                # Initialize without proxy settings
+                self.anthropic_client = anthropic.Anthropic(
+                    api_key=self.anthropic_key
+                )
+            except Exception as e:
+                print(f"⚠️ Anthropic client init error: {e}")
+                self.anthropic_client = None
         
         if self.gemini_key:
-            genai.configure(api_key=self.gemini_key)
-            self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            try:
+                genai.configure(api_key=self.gemini_key)
+                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            except Exception as e:
+                print(f"⚠️ Gemini client init error: {e}")
     
     def test_all_llms(self, questions: List[Dict], knowledge_base: Dict) -> Dict[str, Any]:
         """
