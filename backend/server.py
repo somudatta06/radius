@@ -499,6 +499,62 @@ async def analyze_reddit_thread(
     
     return analysis
 
+@app.post("/api/generate-brief")
+async def generate_brief(request: dict):
+    """
+    Generate AI-powered analysis brief from scores
+    """
+    import os
+    from openai import OpenAI
+    
+    overall_score = request.get('overallScore', 0)
+    platform_scores = request.get('platformScores', [])
+    brand_name = request.get('brandName', 'the brand')
+    domain = request.get('domain', '')
+    
+    # Get OpenAI client
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key:
+        return {"brief": f"With an overall score of {overall_score}/100, {brand_name} shows moderate visibility across AI platforms."}
+    
+    try:
+        client = OpenAI(api_key=openai_key)
+        
+        # Build platform performance text
+        platform_text = "\n".join([f"- {p['platform']}: {p['score']}" for p in platform_scores])
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an AI visibility analyst. Generate a concise 2-3 sentence analysis brief based on the provided scores. Be factual and specific."
+                },
+                {
+                    "role": "user",
+                    "content": f"""Analyze this AI visibility performance:
+
+Brand: {brand_name}
+Domain: {domain}
+Overall Score: {overall_score}/100
+
+Platform Scores:
+{platform_text}
+
+Generate a brief 2-3 sentence analysis of their performance."""
+                }
+            ],
+            temperature=0,
+            max_tokens=150
+        )
+        
+        brief = response.choices[0].message.content.strip()
+        return {"brief": brief}
+    
+    except Exception as e:
+        print(f"Brief generation error: {str(e)}")
+        return {"brief": f"With an overall score of {overall_score}/100, {brand_name} demonstrates solid performance across AI platforms."}
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
