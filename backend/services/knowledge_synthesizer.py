@@ -77,68 +77,95 @@ class KnowledgeSynthesizer:
             traceback.print_exc()
             return self._fallback_knowledge_base(scraped_data)
     
-    def _build_context(self, scraped_data: Dict) -> str:
-        """Build rich context from scraped pages"""
-        context_parts = []
-        
-        # Add page summaries
-        for page in scraped_data.get('page_summaries', []):
-            page_type = page.get('type', 'general')
-            content = page.get('content', '')[:1000]  # Limit per page
-            
-            context_parts.append(f"[{page_type.upper()} PAGE]\n{content}\n")
-        
-        # Add raw text if page summaries are empty
-        if not context_parts and scraped_data.get('raw_text'):
-            context_parts.append(scraped_data['raw_text'][:3000])
-        
-        return '\n\n'.join(context_parts)
-    
-    def _get_system_prompt(self) -> str:
-        """System prompt for GPT knowledge synthesis"""
-        return """You are an expert brand analyst specializing in extracting company positioning and brand voice from website content.
+    def _get_reasoning_system_prompt(self) -> str:
+        """High-quality reasoning-first system prompt"""
+        return """You are a senior business analyst and brand strategist with deep expertise in company positioning.
 
-Your task: Analyze the provided website content and generate a structured Knowledge Base.
+Your task: INFER and SYNTHESIZE a high-quality company description from website summaries.
 
-CRITICAL RULES:
-1. Base ALL outputs ONLY on the provided content - DO NOT hallucinate facts
-2. If information is unclear, infer conservatively
-3. Be specific and factual - avoid generic marketing speak
-4. Extract actual tone and voice from the content
-5. Identify concrete differentiators, not vague claims
-6. Return ONLY valid JSON in the exact structure requested
+CRITICAL REQUIREMENTS:
+1. UNDERSTAND the business - don't just summarize text
+2. REASON about what makes this company unique
+3. IDENTIFY patterns in their positioning and messaging
+4. WRITE like a professional analyst, not a web scraper
+5. Be FACTUAL - only state what is clearly implied by the content
+6. Use CONFIDENT, clear language - no placeholders or "please describe"
+7. If uncertain, write "Not explicitly stated, but appears to be: [inference]"
 
-The output will be user-editable, so prioritize accuracy over completeness."""
-    
-    def _get_user_prompt(self, context: str, domain: str) -> str:
-        """User prompt with context and structure requirements"""
-        return f"""Analyze this website content for {domain} and generate a structured Knowledge Base.
+OUTPUT QUALITY STANDARDS:
+- Each section must be cohesive and well-written
+- Minimum 50 words per major section
+- No raw website text dumps
+- No placeholder phrases
+- Professional business profile quality
 
-WEBSITE CONTENT:
-{context}
+You are NOT copying website text - you are SYNTHESIZING a business description."""
 
-Generate a JSON response with this EXACT structure:
+    def _get_structured_user_prompt(self, corpus: Dict, domain: str) -> str:
+        """Structured reasoning prompt with clear sections"""
+        return f"""Analyze this company's website content and produce a COMPLETE, PROFESSIONAL company profile.
+
+Domain: {domain}
+
+WEBSITE SUMMARIES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOMEPAGE:
+{corpus.get('homepage_summary', 'Not available')}
+
+ABOUT PAGE:
+{corpus.get('about_summary', 'Not available')}
+
+OFFERINGS/PRODUCTS:
+{corpus.get('offerings_summary', 'Not available')}
+
+POSITIONING SIGNALS:
+{corpus.get('positioning_clues', 'Not available')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Now SYNTHESIZE a complete company description using this EXACT JSON structure:
 
 {{
-  "company_description": {{
-    "overview": "2-3 sentences describing what the company does, who they serve, and their mission. Be specific and factual.",
-    "products_and_services": "Concrete description of their main offerings. What do they actually provide?",
-    "target_customers": "Who are their ideal customers? Be specific about industries, company sizes, roles, or demographics.",
-    "positioning": "How do they position themselves in the market? What makes them unique?"
+  "company_overview": {{
+    "what_the_company_is": "Clear 2-3 sentence description of what this company does and its core purpose",
+    "core_mission": "The fundamental problem they solve or value they create",
+    "where_it_operates": "Geographic scope, market segment, or operational model"
   }},
-  "brand_guidelines": {{
-    "brand_tone": "Choose ONE: Professional, Friendly, Bold, Technical, Formal, Casual",
-    "preferred_words": ["word1", "word2", "word3", "word4", "word5"],
-    "words_to_avoid": ["word1", "word2", "word3"],
-    "style_rules": [
-      "Do: Clear, specific writing rule based on their style",
-      "Do: Another concrete style guideline",
-      "Don't: What they seem to avoid in their communication"
-    ]
+  "products_and_services": {{
+    "primary_offerings": ["Offering 1", "Offering 2", "Offering 3"],
+    "delivery_model": "How these offerings are delivered (online, in-person, hybrid, B2B, B2C, etc.)",
+    "key_outcomes_for_users": ["Outcome 1", "Outcome 2", "Outcome 3"]
+  }},
+  "target_customers": {{
+    "primary_audience": "Who is the main customer segment?",
+    "secondary_audience": "Any secondary customer group, or 'None identified'",
+    "customer_needs_solved": ["Need 1", "Need 2", "Need 3"]
+  }},
+  "market_positioning": {{
+    "category": "What category/industry is this company in?",
+    "how_it_is_different": "What makes this company distinct from alternatives?",
+    "alternatives_it_replaces": ["Alternative 1", "Alternative 2"] or ["None explicitly stated"]
+  }},
+  "key_differentiators": [
+    "Differentiator 1 - be specific",
+    "Differentiator 2 - be specific",
+    "Differentiator 3 - be specific"
+  ],
+  "brand_tone_and_voice": {{
+    "tone": "Professional | Academic | Founder-led | Bold | Technical | Friendly",
+    "writing_style_rules": [
+      "Rule 1 based on actual content style",
+      "Rule 2 based on actual content style"
+    ],
+    "phrases_to_avoid": ["Generic phrase 1", "Generic phrase 2"]
   }}
 }}
 
-Base everything on the actual content provided. Be factual and specific."""
+IMPORTANT:
+- Write full, cohesive descriptions - NOT bullet points or fragments
+- Base everything on the provided content
+- If uncertain, state "Appears to be [inference based on context]"
+- No placeholder text like "Please describe..." - write actual content
+- Ensure total output is substantial (aim for 500+ words across all fields)"""
     
     def _fallback_knowledge_base(self, scraped_data: Dict) -> Dict:
         """Fallback KB when GPT is unavailable"""
