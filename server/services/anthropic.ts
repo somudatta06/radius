@@ -15,7 +15,7 @@ export async function chat(messages: ChatMessage[], options: {
   maxTokens?: number;
 } = {}): Promise<string> {
   const {
-    model = 'claude-3-5-sonnet-20240620',
+    model = 'claude-sonnet-4-5',
     temperature = 0.7,
     maxTokens = 2000,
   } = options;
