@@ -228,21 +228,25 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
                 "estimatedImpact": "+15-20 points"
             })
         
-        # Identify real competitors using AI
+        # Identify real competitors using AI with website context
         from services.competitor_intelligence import competitor_service
         
-        print(f"🔍 Identifying competitors for: {brand_info['name']}")
+        print(f"🔍 Identifying DIRECT competitors for: {brand_info['name']}")
         print(f"   Domain: {brand_info['domain']}")
         print(f"   Description: {brand_info.get('description', 'N/A')[:100]}")
+        
+        # Pass website content for better context
+        website_context = f"{website_info.get('title', '')}. {website_info.get('description', '')}. Headings: {', '.join(website_info.get('headings', [])[:10])}"
         
         identified_competitors = competitor_service.identify_competitors(
             company_name=brand_info['name'],
             domain=brand_info['domain'],
             description=brand_info.get('description', brand_info['name']),
-            industry=brand_info.get('industry', 'Technology')
+            industry=brand_info.get('industry', 'Technology'),
+            website_content=website_context
         )
         
-        print(f"✅ Got {len(identified_competitors)} competitors from service")
+        print(f"✅ Got {len(identified_competitors)} DIRECT competitors from service")
         
         # Build competitors list with current brand first
         competitors = [
