@@ -38,8 +38,6 @@ class VisibilityService:
         ]
         name_lower = name.lower().strip()
         return any(pattern in name_lower for pattern in generic_patterns)
-        ]
-        return name.lower().strip() in generic_names
     
     async def get_competitors_for_domain(self, domain: str) -> List[Dict]:
         """
