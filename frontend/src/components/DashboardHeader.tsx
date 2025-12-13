@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 interface DashboardHeaderProps {
   websiteUrl?: string;
   onNewAnalysis?: () => void;
+  analysisId?: string;  // Show analysis ID for data provenance
 }
 
-export default function DashboardHeader({ websiteUrl, onNewAnalysis }: DashboardHeaderProps) {
+export default function DashboardHeader({ websiteUrl, onNewAnalysis, analysisId }: DashboardHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
