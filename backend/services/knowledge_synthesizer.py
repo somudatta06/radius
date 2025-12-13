@@ -58,6 +58,9 @@ class KnowledgeSynthesizer:
             raw_output = response.choices[0].message.content
             print(f"📄 GPT response length: {len(raw_output)} chars")
             
+            # Debug: print first 500 chars of response
+            print(f"🔍 GPT response preview: {raw_output[:500]}")
+            
             knowledge = json.loads(raw_output)
             
             # QUALITY VALIDATION (reject low-quality output)
@@ -204,8 +207,13 @@ CRITICAL RULES:
         try:
             # Check company_overview exists and has content
             overview = knowledge.get('company_overview', {})
-            if not overview.get('what_the_company_is') or len(overview.get('what_the_company_is', '')) < 50:
-                print("❌ Validation failed: Company overview too short or missing")
+            
+            # Handle both old and new schema
+            overview_text = overview.get('summary') or overview.get('what_the_company_is') or ''
+            
+            if not overview_text or len(overview_text) < 50:
+                print(f"❌ Validation failed: Company overview too short or missing (len: {len(overview_text)})")
+                print(f"   Keys found: {list(overview.keys())}")
                 return False
             
             # Check products section exists
