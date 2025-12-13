@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Circle, User, LayoutDashboard, LogOut, BookOpen, MessageCircle } from "lucide-react";
+import { Circle, User, LayoutDashboard, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -119,14 +119,6 @@ export default function LandingNav() {
                   <DropdownMenuItem onClick={() => navigate("/dashboard")} data-testid="menu-dashboard">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/knowledge-base")} data-testid="menu-knowledge-base">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Knowledge Base
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/reddit")} data-testid="menu-reddit">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Reddit Intelligence
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} data-testid="menu-logout">
