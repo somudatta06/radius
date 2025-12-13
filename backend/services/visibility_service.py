@@ -156,10 +156,11 @@ class VisibilityService:
             "total_appearances": random.randint(20, 100)
         }
     
-    def get_position_rankings(self) -> List[Dict]:
-        """Get ranked list by average position"""
+    def get_position_rankings(self, competitors: List[Dict] = None) -> List[Dict]:
+        """Get ranked list by average position using REAL competitor data"""
+        comp_list = competitors if competitors else self.get_current_competitors()
         rankings = []
-        for comp in self.mock_competitors:
+        for comp in comp_list:
             position = random.uniform(3.0, 9.0)
             rankings.append({
                 "competitor_id": comp["id"],
