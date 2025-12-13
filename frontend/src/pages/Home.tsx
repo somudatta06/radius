@@ -10,7 +10,7 @@ import { FeaturesSection } from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
 import DashboardHeader from "@/components/DashboardHeader";
 import AnalysisResults from "@/components/AnalysisResults";
-import type { AnalysisResult } from "@shared/schema";
+import type { AnalysisResult } from "@/types/schema";
 
 export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
