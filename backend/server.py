@@ -368,11 +368,25 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         parsed_url = urlparse(url)
         domain_name = parsed_url.netloc.replace('www.', '')
         
+        # Extract brand info with robust fallbacks
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        domain_name = parsed_url.netloc.replace('www.', '')
+        
+        # Ensure brand name is never "Error" or empty
+        brand_name = website_info['title']
+        if not brand_name or brand_name.lower() in ['error', 'untitled', '404', 'not found', 'access denied', 'forbidden']:
+            brand_name = extract_brand_name_from_url(url)
+        
+        # Clean up overly long brand names
+        if len(brand_name) > 100:
+            brand_name = brand_name[:100].rsplit(' ', 1)[0] + '...'
+        
         brand_info = {
-            "name": website_info['title'],
+            "name": brand_name,
             "domain": domain_name,
             "industry": "Technology",
-            "description": website_info['description'] or f"Website analysis for {domain_name}"
+            "description": website_info['description'] or f"Analysis for {brand_name}"
         }
         
         # Calculate platform scores
