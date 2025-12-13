@@ -17,7 +17,7 @@ import { PDFReport } from "@/components/PDFReport";
 import { BriefSection } from "@/components/BriefSection";
 import { JavaScriptHeavyErrorModal } from "@/components/JavaScriptHeavyErrorModal";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
-import type { AnalysisResult } from "@shared/schema";
+import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
