@@ -22,16 +22,18 @@ class CompetitorIntelligenceService:
         company_name: str,
         domain: str,
         description: str,
-        industry: str = "Technology"
+        industry: str = "Technology",
+        website_content: str = ""
     ) -> List[Dict]:
         """
-        Identify 4-5 real competitors based on company profile
+        Identify 4-5 real DIRECT competitors based on company profile
         
         Args:
             company_name: Name of the company
             domain: Website domain
             description: Company description/title
             industry: Industry category
+            website_content: Additional content from the website for context
             
         Returns:
             List of competitor dictionaries with name, domain, description
@@ -48,54 +50,83 @@ class CompetitorIntelligenceService:
             return self._fallback_competitors(company_name, industry)
         
         try:
-            # Build prompt for GPT
-            system_prompt = """You are a market research analyst specializing in competitive intelligence.
+            # Build enhanced prompt for GPT with better competitor identification
+            system_prompt = """You are an expert market research analyst specializing in competitive intelligence.
 
-Your task: Identify 4-5 REAL competitors for the given company.
+Your task: Identify 5 REAL, DIRECT competitors for the given company.
 
-CRITICAL RULES:
-✅ Competitors MUST be real companies that actually exist
-✅ Competitors MUST operate in the same industry/category
-✅ Competitors MUST offer similar products/services
-✅ Include a mix of direct competitors and adjacent players
-❌ Do NOT invent fake companies
-❌ Do NOT include companies from unrelated industries
+CRITICAL RULES FOR ACCURATE COMPETITOR IDENTIFICATION:
 
-Return ONLY valid JSON with this structure:
+1. DIRECT COMPETITORS FIRST:
+   - Companies offering the SAME or very similar products/services
+   - Companies targeting the EXACT same customer segment
+   - Companies in the same price range and market positioning
+   - Companies that customers would consider as alternatives
+
+2. SPECIFICITY IS KEY:
+   - For business schools: Find OTHER business schools with similar positioning (startup-focused, executive education, etc.)
+   - For payment processors: Find OTHER payment processors
+   - For SaaS: Find OTHER SaaS tools in the same category
+   - NEVER suggest companies from different industries
+
+3. GEOGRAPHIC & MARKET RELEVANCE:
+   - If the company operates in a specific region (e.g., India), prioritize competitors in that region
+   - Include both local leaders and relevant global players
+
+4. MODERN & EMERGING PLAYERS:
+   - Include newer, disruptive competitors - not just established giants
+   - Identify companies with similar business models (e.g., if company has cohort-based learning, find others with cohort-based learning)
+
+❌ AVOID:
+- Generic industry leaders that aren't direct competitors
+- Companies from different industries/categories
+- Fictional or non-existent companies
+- Overly broad comparisons (e.g., comparing a startup school to Harvard)
+
+Return ONLY valid JSON:
 {
   "competitors": [
     {
       "name": "Company Name",
       "domain": "example.com",
       "description": "Brief description of what they do",
-      "reasoning": "Why they are a competitor"
+      "reasoning": "Why they are a DIRECT competitor"
     }
   ]
 }"""
 
-            user_prompt = f"""Identify 4-5 real competitors for this company:
+            # Create a more detailed user prompt
+            user_prompt = f"""Identify 5 real DIRECT competitors for this company:
 
-Company: {company_name}
-Domain: {domain}
-Description: {description}
-Industry: {industry}
+COMPANY DETAILS:
+- Name: {company_name}
+- Domain: {domain}
+- Description: {description}
+- Industry: {industry}
 
-Identify competitors that:
-1. Operate in the same space (direct competitors)
-2. Target similar customers
-3. Offer comparable products/services
-4. Are well-known in the industry
+{f'ADDITIONAL CONTEXT FROM WEBSITE:{chr(10)}{website_content[:1500]}' if website_content else ''}
 
-Return competitors ranked by relevance (most relevant first)."""
+IMPORTANT: Focus on finding companies that:
+1. Offer IDENTICAL or very similar products/services
+2. Target the SAME customer segment
+3. Would be considered direct alternatives by customers
+4. Have similar business models and positioning
+
+For example:
+- If this is a startup-focused business school in India, find OTHER startup-focused business schools (especially in India/Asia)
+- If this is a payment gateway, find OTHER payment gateways
+- If this is a project management tool, find OTHER project management tools
+
+Return the 5 most relevant DIRECT competitors, ranked by how directly they compete."""
 
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",  # Use more capable model for better accuracy
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0,  # Deterministic for consistency
-                max_tokens=800,
+                temperature=0.1,  # Slight temperature for diversity while staying accurate
+                max_tokens=1200,
                 response_format={"type": "json_object"}
             )
             
@@ -111,9 +142,9 @@ Return competitors ranked by relevance (most relevant first)."""
                 print(f"Response: {raw_response[:200]}")
                 return self._fallback_competitors(company_name, industry)
             
-            print(f"✅ Identified {len(competitors)} competitors for {company_name}")
+            print(f"✅ Identified {len(competitors)} DIRECT competitors for {company_name}")
             for comp in competitors:
-                print(f"   - {comp['name']}")
+                print(f"   - {comp['name']}: {comp.get('reasoning', 'N/A')[:50]}...")
             return competitors[:5]  # Limit to 5
         
         except Exception as e:
