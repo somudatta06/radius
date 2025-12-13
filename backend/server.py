@@ -404,10 +404,18 @@ async def get_sentiment_metrics(
     return visibility_service.calculate_sentiment(brand_id, start, end)
 
 @app.get("/api/visibility/share-of-voice")
-async def get_share_of_voice():
-    """Get share of voice metrics"""
+async def get_share_of_voice(
+    domain: str = Query(None, description="Domain to fetch competitors for")
+):
+    """Get share of voice metrics with REAL competitors"""
     from services.visibility_service import visibility_service
-    return visibility_service.calculate_share_of_voice()
+    
+    # Fetch REAL competitors if domain provided
+    competitors = None
+    if domain:
+        competitors = await visibility_service.get_competitors_for_domain(domain)
+    
+    return visibility_service.calculate_share_of_voice(competitors)
 
 @app.get("/api/visibility/geographic")
 async def get_geographic_performance():
