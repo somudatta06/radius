@@ -36,6 +36,13 @@ class CompetitorIntelligenceService:
         Returns:
             List of competitor dictionaries with name, domain, description
         """
+        # Reinitialize client if needed (env might load after import)
+        if not self.client:
+            self.openai_key = os.getenv("OPENAI_API_KEY")
+            if self.openai_key:
+                self.client = OpenAI(api_key=self.openai_key)
+                print(f"✅ OpenAI client initialized for competitor ID")
+        
         if not self.client:
             print("⚠️  OpenAI not available - using fallback competitors")
             return self._fallback_competitors(company_name, industry)
