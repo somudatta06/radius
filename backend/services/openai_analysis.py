@@ -31,6 +31,11 @@ class OpenAIAnalysisService:
         Returns:
             Analysis with scores, strengths, weaknesses, and strategy
         """
+        # Use fallback if no API key or client
+        if not self.client or not self.api_key:
+            logger.warning("OpenAI API key not configured, using fallback analysis")
+            return self._fallback_analysis(competitors)
+        
         try:
             # Prepare competitor data for analysis
             competitors_summary = self._prepare_competitor_summary(competitors)
