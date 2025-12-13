@@ -48,9 +48,11 @@ class RadiusLLMTester:
         
         if self.anthropic_key:
             try:
-                # Initialize without proxy settings
+                # Initialize Anthropic client - newer version doesn't need proxies
+                import httpx
                 self.anthropic_client = anthropic.Anthropic(
-                    api_key=self.anthropic_key
+                    api_key=self.anthropic_key,
+                    http_client=httpx.Client()
                 )
             except Exception as e:
                 print(f"⚠️ Anthropic client init error: {e}")
