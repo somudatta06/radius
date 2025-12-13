@@ -16,7 +16,8 @@ class OpenAIAnalysisService:
     """Service for AI-powered competitor analysis using OpenAI"""
     
     def __init__(self):
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.api_key = OPENAI_API_KEY
+        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
         self.model = "gpt-4o-mini"  # Using GPT-4o mini for cost efficiency
     
     def analyze_competitors(self, competitors: List[Dict], user_company: Dict = None) -> Dict:
