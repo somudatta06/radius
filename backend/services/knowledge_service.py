@@ -6,6 +6,8 @@ from typing import Optional, Dict, List
 import os
 import random
 from datetime import datetime
+from services.website_scraper import WebsiteScraper
+from services.knowledge_synthesizer import KnowledgeSynthesizer
 
 # Mock knowledge base storage (in production, use MongoDB)
 _knowledge_store = {}
@@ -15,14 +17,77 @@ class KnowledgeService:
     
     def __init__(self):
         self.openai_key = os.getenv("OPENAI_API_KEY")
+        self.synthesizer = KnowledgeSynthesizer()
     
     async def get_knowledge_base(self, company_id: str = "default") -> Dict:
         """Get knowledge base for company"""
         if company_id not in _knowledge_store:
-            # Auto-generate on first access
-            _knowledge_store[company_id] = await self.generate_initial_knowledge(company_id)
+            # Return empty structure if not generated yet
+            # (Generation happens during analysis, not on first access)
+            _knowledge_store[company_id] = self._empty_knowledge_base()
         
         return _knowledge_store[company_id]
+    
+    async def generate_from_website(self, website_url: str, company_id: str = "default") -> Dict:
+        """
+        Generate Knowledge Base by scraping and analyzing website
+        This is the automatic bootstrapping pipeline
+        """
+        try:
+            print(f"🔍 Scraping website: {website_url}")
+            
+            # Step 1: Scrape website comprehensively
+            scraper = WebsiteScraper(website_url)
+            scraped_data = scraper.scrape_comprehensive(max_pages=5)
+            
+            print(f"✅ Scraped {scraped_data['total_pages']} pages")
+            
+            # Step 2: Synthesize knowledge using GPT
+            print(f"🤖 Synthesizing knowledge with GPT...")
+            knowledge = self.synthesizer.synthesize_knowledge_base(scraped_data)
+            
+            # Step 3: Add timestamps
+            knowledge['created_at'] = datetime.utcnow().isoformat()
+            knowledge['updated_at'] = datetime.utcnow().isoformat()
+            knowledge['company_description']['last_edited'] = datetime.utcnow().isoformat()
+            knowledge['brand_guidelines']['last_edited'] = datetime.utcnow().isoformat()
+            
+            # Step 4: Store in memory
+            _knowledge_store[company_id] = knowledge
+            
+            print(f"✅ Knowledge Base generated for {company_id}")
+            
+            return knowledge
+        
+        except Exception as e:
+            print(f"❌ Error generating KB from website: {str(e)}")
+            # Return fallback
+            return self._empty_knowledge_base()
+    
+    def _empty_knowledge_base(self) -> Dict:
+        """Empty KB structure for fallback"""
+        return {
+            "company_description": {
+                "overview": "",
+                "products_services": "",
+                "target_customers": "",
+                "positioning": "",
+                "is_ai_generated": False,
+                "last_edited": datetime.utcnow().isoformat(),
+            },
+            "brand_guidelines": {
+                "tone": None,
+                "words_to_prefer": [],
+                "words_to_avoid": [],
+                "dos": [],
+                "donts": [],
+                "is_ai_extracted": False,
+                "last_edited": datetime.utcnow().isoformat(),
+            },
+            "evidence": [],
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
     
     async def generate_initial_knowledge(self, company_id: str, website_url: Optional[str] = None) -> Dict:
         """
