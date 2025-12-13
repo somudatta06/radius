@@ -14,9 +14,14 @@ class VisibilityService:
     
     def __init__(self):
         # MongoDB connection for fetching real competitor data
-        mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-        self.mongo_client = AsyncIOMotorClient(mongo_url)
-        self.db = self.mongo_client.radius_db
+        try:
+            mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+            self.mongo_client = AsyncIOMotorClient(mongo_url)
+            self.db = self.mongo_client.radius_db
+        except Exception as e:
+            print(f"⚠️  MongoDB connection error in VisibilityService: {e}")
+            self.mongo_client = None
+            self.db = None
         
         # Cache for current session competitors
         self._current_competitors = []
@@ -24,10 +29,15 @@ class VisibilityService:
     
     def _is_generic_competitor(self, name: str) -> bool:
         """Check if a competitor name is a generic fallback"""
-        generic_names = [
+        if not name:
+            return True
+        generic_patterns = [
             "competitor a", "competitor b", "competitor c", "competitor d",
             "competitor 1", "competitor 2", "competitor 3", "competitor 4",
-            "unknown", "n/a"
+            "unknown", "n/a", "error", "top ", "provider 1", "provider 2"
+        ]
+        name_lower = name.lower().strip()
+        return any(pattern in name_lower for pattern in generic_patterns)
         ]
         return name.lower().strip() in generic_names
     
