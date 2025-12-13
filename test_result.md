@@ -103,6 +103,8 @@ test_plan:
     - "Evidence Tab Functionality"
   test_all: false
   test_priority: "stuck_first"
+  completed_tests:
+    - "Knowledge Base Integration in Analysis Results"
 
 agent_communication:
   - agent: "testing"
