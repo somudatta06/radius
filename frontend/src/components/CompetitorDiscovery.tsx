@@ -60,7 +60,7 @@ export default function CompetitorDiscovery() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/competitors?keyword=${encodeURIComponent(keyword)}&limit=10`
+        `${API_BASE_URL}/api/competitors?query=${encodeURIComponent(keyword)}&limit=10&analyze=true`
       );
 
       if (!response.ok) {
@@ -68,8 +68,13 @@ export default function CompetitorDiscovery() {
       }
 
       const data = await response.json();
-      setCompetitors(data.competitors || []);
-      setAnalysis(data.analysis || null);
+      
+      if (data.success) {
+        setCompetitors(data.competitors || []);
+        setAnalysis(data.analysis || null);
+      } else {
+        throw new Error('API returned unsuccessful response');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
