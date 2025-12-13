@@ -1,5 +1,5 @@
 import { X, AlertTriangle, Search, Lightbulb } from 'lucide-react';
-import type { AnalysisError } from '@shared/schema';
+import type { AnalysisError } from '@/types/schema';
 
 interface Props {
   isOpen: boolean;
