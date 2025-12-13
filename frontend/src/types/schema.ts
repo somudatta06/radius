@@ -71,4 +71,13 @@ export interface AnalysisResult {
   gaps: Gap[];
   recommendations: Recommendation[];
   geoMetrics?: GeoMetrics;
+  // Data provenance fields (CRITICAL for no-cache architecture)
+  analysisId?: string;
+  analyzedAt?: string;
+  dataProvenance?: {
+    cache_used: boolean;
+    fresh_crawl: boolean;
+    fresh_gpt_call: boolean;
+    timestamp: string;
+  };
 }
