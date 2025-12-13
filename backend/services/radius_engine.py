@@ -169,12 +169,15 @@ class RadiusIntelligenceEngine:
             }
             
             # Persist to MongoDB if available
-            if db:
-                await db.radius_analyses.insert_one({
-                    **result,
-                    '_id': analysis_id
-                })
-                print(f"\n💾 Analysis saved to MongoDB: {analysis_id}")
+            if db is not None:
+                try:
+                    await db.radius_analyses.insert_one({
+                        **result,
+                        '_id': analysis_id
+                    })
+                    print(f"\n💾 Analysis saved to MongoDB: {analysis_id}")
+                except Exception as db_error:
+                    print(f"⚠️ Failed to save to MongoDB: {db_error}")
             
             print(f"\n{'='*60}")
             print(f"✅ RADIUS ANALYSIS COMPLETE")
