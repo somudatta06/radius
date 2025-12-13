@@ -90,6 +90,7 @@ class WebsiteScraper:
         try:
             response = requests.get(url, headers=self.headers, timeout=10, allow_redirects=True)
             if response.status_code != 200:
+                print(f"❌ Status {response.status_code} for {url}")
                 return None
             
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -102,16 +103,11 @@ class WebsiteScraper:
             title = soup.find('title')
             title_text = title.get_text().strip() if title else url
             
-            # Extract main content
-            # Try to find main content area
-            main_content = (
-                soup.find('main') or 
-                soup.find('article') or 
-                soup.find('div', class_=re.compile(r'content|main', re.I)) or
-                soup.find('body')
-            )
+            # Extract main content - be more lenient
+            main_content = soup.find('body')
             
             if not main_content:
+                print(f"❌ No body found for {url}")
                 return None
             
             # Get text
@@ -121,8 +117,11 @@ class WebsiteScraper:
             text = re.sub(r'\s+', ' ', text)  # Normalize whitespace
             text = text.strip()
             
-            if len(text) < 100:  # Skip pages with too little content
+            if len(text) < 50:  # Reduced minimum (was 100)
+                print(f"❌ Too little content ({len(text)} chars) for {url}")
                 return None
+            
+            print(f"✅ Scraped {url}: {len(text)} chars")
             
             return {
                 'title': title_text,
@@ -130,7 +129,7 @@ class WebsiteScraper:
             }
         
         except Exception as e:
-            print(f"Error scraping {url}: {str(e)}")
+            print(f"❌ Error scraping {url}: {str(e)}")
             return None
     
     def _classify_page_type(self, path: str, title: str) -> str:
