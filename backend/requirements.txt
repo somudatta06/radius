@@ -1,3 +1,6 @@
+PyJWT==2.10.1
+PyYAML==6.0.3
+Pygments==2.19.2
 annotated-types==0.7.0
 anthropic==0.39.0
 anyio==4.12.0
@@ -36,6 +39,7 @@ mypy==1.19.0
 mypy_extensions==1.1.0
 numpy==2.3.5
 oauthlib==3.3.1
+openai==2.11.0
 packaging==25.0
 pandas==2.3.3
 passlib==1.7.4
@@ -45,12 +49,10 @@ pluggy==1.6.0
 pyasn1==0.6.1
 pycodestyle==2.14.0
 pycparser==2.23
-pydantic==2.10.3
 pydantic-settings==2.6.1
+pydantic==2.10.3
 pydantic_core==2.27.1
 pyflakes==3.4.0
-Pygments==2.19.2
-PyJWT==2.10.1
 pymongo==4.9.2
 pytest==9.0.2
 python-dateutil==2.9.0.post0
@@ -59,9 +61,8 @@ python-jose==3.3.0
 python-multipart==0.0.19
 pytokens==0.3.0
 pytz==2025.2
-PyYAML==6.0.3
-requests==2.32.3
 requests-oauthlib==2.0.0
+requests==2.32.3
 rich==14.2.0
 rsa==4.9.1
 s3transfer==0.16.0
@@ -80,6 +81,3 @@ uvicorn==0.32.1
 uvloop==0.22.1
 watchfiles==1.1.1
 websockets==15.0.1
-openai==2.11.0
-requests==2.32.3
-requests-oauthlib==2.0.0
