@@ -227,12 +227,18 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         # Identify real competitors using AI
         from services.competitor_intelligence import competitor_service
         
+        print(f"🔍 Identifying competitors for: {brand_info['name']}")
+        print(f"   Domain: {brand_info['domain']}")
+        print(f"   Description: {brand_info.get('description', 'N/A')[:100]}")
+        
         identified_competitors = competitor_service.identify_competitors(
             company_name=brand_info['name'],
             domain=brand_info['domain'],
-            description=brand_info['description'],
+            description=brand_info.get('description', brand_info['name']),
             industry=brand_info.get('industry', 'Technology')
         )
+        
+        print(f"✅ Got {len(identified_competitors)} competitors from service")
         
         # Build competitors list with current brand first
         competitors = [
