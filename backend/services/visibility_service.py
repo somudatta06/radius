@@ -22,10 +22,20 @@ class VisibilityService:
         self._current_competitors = []
         self._current_brand_name = None
     
+    def _is_generic_competitor(self, name: str) -> bool:
+        """Check if a competitor name is a generic fallback"""
+        generic_names = [
+            "competitor a", "competitor b", "competitor c", "competitor d",
+            "competitor 1", "competitor 2", "competitor 3", "competitor 4",
+            "unknown", "n/a"
+        ]
+        return name.lower().strip() in generic_names
+    
     async def get_competitors_for_domain(self, domain: str) -> List[Dict]:
         """
         Fetch REAL competitors from MongoDB based on analysis domain
         This ensures visibility shows the same competitors as the main analysis
+        If competitors are generic, try to re-identify them using AI
         """
         try:
             # Find the most recent analysis for this domain
@@ -37,9 +47,57 @@ class VisibilityService:
             
             if analysis and analysis.get("competitors"):
                 competitors = analysis["competitors"]
-                self._current_brand_name = analysis.get("brandInfo", {}).get("name", "You")
+                brand_info = analysis.get("brandInfo", {})
+                self._current_brand_name = brand_info.get("name", "You")
                 
-                # Transform to visibility format
+                # Check if competitors are generic (fallback data)
+                non_current_comps = [c for c in competitors if not c.get("isCurrentBrand")]
+                has_generic = any(self._is_generic_competitor(c.get("name", "")) for c in non_current_comps)
+                
+                if has_generic and len(non_current_comps) > 0:
+                    print(f"⚠️  Detected generic competitors for {domain}, re-identifying...")
+                    # Try to re-identify competitors using AI
+                    try:
+                        from services.competitor_intelligence import competitor_service
+                        new_competitors = competitor_service.identify_competitors(
+                            company_name=brand_info.get("name", domain),
+                            domain=domain,
+                            description=brand_info.get("description", ""),
+                            industry=brand_info.get("industry", "Technology")
+                        )
+                        
+                        if new_competitors and not self._is_generic_competitor(new_competitors[0].get("name", "")):
+                            # Build updated competitor list
+                            result = []
+                            # Add current brand first
+                            for comp in competitors:
+                                if comp.get("isCurrentBrand"):
+                                    result.append({
+                                        "id": "comp1",
+                                        "name": comp.get("name", "You"),
+                                        "is_manual": False,
+                                        "is_current": True
+                                    })
+                                    break
+                            
+                            # Add newly identified competitors
+                            for idx, comp in enumerate(new_competitors, 2):
+                                result.append({
+                                    "id": f"comp{idx}",
+                                    "name": comp.get("name", "Unknown"),
+                                    "is_manual": False,
+                                    "is_current": False
+                                })
+                            
+                            self._current_competitors = result
+                            print(f"✅ Re-identified {len(result)} REAL competitors for domain: {domain}")
+                            for c in result:
+                                print(f"   - {c['name']} (current: {c['is_current']})")
+                            return result
+                    except Exception as re_id_error:
+                        print(f"⚠️  Re-identification failed: {str(re_id_error)}")
+                
+                # Transform to visibility format (original path)
                 result = []
                 for comp in competitors:
                     result.append({
@@ -50,7 +108,7 @@ class VisibilityService:
                     })
                 
                 self._current_competitors = result
-                print(f"✅ Loaded {len(result)} REAL competitors for domain: {domain}")
+                print(f"✅ Loaded {len(result)} competitors for domain: {domain}")
                 for c in result:
                     print(f"   - {c['name']} (current: {c['is_current']})")
                 return result
