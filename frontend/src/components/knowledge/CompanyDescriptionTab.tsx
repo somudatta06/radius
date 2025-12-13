@@ -104,9 +104,14 @@ export function CompanyDescriptionTab({ data }: CompanyDescriptionTabProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleEdit(field, value || "")}
+                onClick={() => {
+                  console.log("Edit clicked for field:", field);
+                  handleEdit(field, value || "");
+                }}
+                data-testid={`edit-${field}`}
               >
-                <Edit2 className="h-4 w-4" />
+                <Edit2 className="h-4 w-4 mr-1" />
+                Edit
               </Button>
             )}
           </div>
