@@ -352,18 +352,93 @@ CRITICAL RULES:
         }
     
     def _fallback_knowledge_base(self, scraped_data: Dict) -> Dict:
-        """Fallback KB when GPT is unavailable"""
-        domain = scraped_data.get('domain', 'your company')
+        """
+        Generate KB using OpenAI when scraping fails
+        NEVER returns placeholder text - always generates useful content
+        """
+        domain = scraped_data.get('domain', 'website')
         raw_text = scraped_data.get('raw_text', '')[:500]
+        
+        # Try to use OpenAI to generate content based on domain
+        if self.client:
+            try:
+                print(f"🤖 Generating KB from domain knowledge for {domain}...")
+                
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": """You are a business analyst. Generate a concise company profile based on the domain name.
+                        
+If you know this company, provide accurate information.
+If you don't know this company, make reasonable inferences from the domain name but mark them as inferences.
+
+CRITICAL: Never use placeholder text like "Please describe..." - always provide substantive content."""},
+                        {"role": "user", "content": f"""Generate a brief company profile for: {domain}
+
+Additional context (if any): {raw_text[:300] if raw_text else 'No additional content available'}
+
+Provide:
+1. Company Overview (2-3 sentences about what this company does)
+2. Products/Services (what they likely offer based on the domain/industry)
+3. Target Customers (who they serve)
+4. Market Positioning (how they position themselves)
+
+Format as clear paragraphs, not placeholders."""}
+                    ],
+                    temperature=0.3,
+                    max_tokens=800
+                )
+                
+                generated_text = response.choices[0].message.content
+                
+                # Parse the response into sections
+                sections = self._parse_generated_sections(generated_text)
+                
+                from datetime import datetime
+                
+                return {
+                    "company_description": {
+                        "overview": sections.get('overview', f"A company operating at {domain}."),
+                        "products_services": sections.get('products', f"Products and services offered by {domain}."),
+                        "target_customers": sections.get('customers', f"Customers served by {domain}."),
+                        "positioning": sections.get('positioning', f"Market positioning of {domain}."),
+                        "is_ai_generated": True,
+                        "generated_from": domain,
+                        "generation_note": "Generated from domain knowledge (website scraping was limited)"
+                    },
+                    "brand_guidelines": {
+                        "tone": "Professional",
+                        "words_to_prefer": [],
+                        "words_to_avoid": [],
+                        "dos": ["Use clear, specific language"],
+                        "donts": [],
+                        "is_ai_extracted": True,
+                    },
+                    "evidence": [],
+                    "metadata": {
+                        "source": "ai_generated_fallback",
+                        "generated_from": domain,
+                        "pages_analyzed": scraped_data.get('total_pages', 0),
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                }
+            except Exception as e:
+                print(f"❌ Fallback generation error: {str(e)}")
+        
+        # Ultimate fallback - domain-based content (no placeholders)
+        brand_name = domain.split('.')[0].capitalize()
+        
+        from datetime import datetime
         
         return {
             "company_description": {
-                "overview": f"A company operating at {domain}. {raw_text[:200] if raw_text else 'Please edit this description with your company details.'}",
-                "products_services": "Please describe your products and services.",
-                "target_customers": "Please describe your target customers.",
-                "positioning": "Please describe your market positioning.",
+                "overview": f"{brand_name} is a company operating at {domain}. The company provides products and services in its industry sector.",
+                "products_services": f"{brand_name} offers various products and services to its customers. Visit {domain} for detailed information about their offerings.",
+                "target_customers": f"{brand_name} serves customers looking for solutions in their industry. The company targets businesses and individuals seeking quality services.",
+                "positioning": f"{brand_name} positions itself as a trusted provider in the market, focusing on delivering value to its customers.",
                 "is_ai_generated": False,
                 "generated_from": domain,
+                "generation_note": "Basic profile generated from domain (scraping and AI generation unavailable)"
             },
             "brand_guidelines": {
                 "tone": "Professional",
@@ -375,8 +450,46 @@ CRITICAL RULES:
             },
             "evidence": [],
             "metadata": {
-                "source": "fallback",
+                "source": "domain_fallback",
                 "generated_from": domain,
-                "pages_analyzed": 0
+                "pages_analyzed": 0,
+                "timestamp": datetime.utcnow().isoformat()
             }
         }
+    
+    def _parse_generated_sections(self, text: str) -> Dict:
+        """Parse generated text into sections"""
+        sections = {
+            'overview': '',
+            'products': '',
+            'customers': '',
+            'positioning': ''
+        }
+        
+        current_section = 'overview'
+        lines = text.split('\n')
+        
+        for line in lines:
+            line_lower = line.lower()
+            
+            if 'overview' in line_lower or 'company' in line_lower and ':' in line:
+                current_section = 'overview'
+                continue
+            elif 'product' in line_lower or 'service' in line_lower and ':' in line:
+                current_section = 'products'
+                continue
+            elif 'customer' in line_lower or 'target' in line_lower and ':' in line:
+                current_section = 'customers'
+                continue
+            elif 'position' in line_lower or 'market' in line_lower and ':' in line:
+                current_section = 'positioning'
+                continue
+            
+            # Add content to current section
+            if line.strip() and not line.startswith('#'):
+                if sections[current_section]:
+                    sections[current_section] += ' ' + line.strip()
+                else:
+                    sections[current_section] = line.strip()
+        
+        return sections
