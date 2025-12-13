@@ -40,7 +40,7 @@ interface Analysis {
   keyOpportunities: string[];
 }
 
-export default function CompetitorDiscovery() {
+export function CompetitorDiscovery() {
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
