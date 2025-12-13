@@ -23,7 +23,7 @@ import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
+type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "reddit" | "accuracy";
 
 interface TabConfig {
   id: Tab;
@@ -37,6 +37,7 @@ const tabs: TabConfig[] = [
   { id: "recommendations", label: "Recommendations" },
   { id: "score-breakdown", label: "Score Breakdown" },
   { id: "competitors", label: "Competitor Analysis" },
+  { id: "reddit", label: "Reddit Intelligence" },
   { id: "methodology", label: "Methodology" },
   { id: "discovery", label: "Competitor Discovery" },
   { id: "accuracy", label: "Accuracy Check" },
