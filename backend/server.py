@@ -364,18 +364,24 @@ async def get_mention_rate(
 @app.get("/api/visibility/position")
 async def get_position_metrics(
     brand_id: str = Query("current"),
+    domain: str = Query(None, description="Domain to fetch competitors for"),
     start_date: str = Query(None),
     end_date: str = Query(None)
 ):
-    """Get average position metrics"""
+    """Get average position metrics with REAL competitors"""
     from services.visibility_service import visibility_service
     from datetime import datetime, timedelta
     
     end = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
     start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=30)
     
+    # Fetch REAL competitors if domain provided
+    competitors = None
+    if domain:
+        competitors = await visibility_service.get_competitors_for_domain(domain)
+    
     metrics = visibility_service.calculate_average_position(brand_id, start, end)
-    rankings = visibility_service.get_position_rankings()
+    rankings = visibility_service.get_position_rankings(competitors)
     
     return {
         "metrics": metrics,
