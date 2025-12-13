@@ -89,6 +89,42 @@ frontend:
         agent: "testing"
         comment: "❌ CRITICAL: Add Evidence form validation issue. Dialog opens correctly with all required fields (Type, Title, Content, Source). However, Add Evidence button remains disabled even when all required fields are filled, preventing evidence creation. Empty state displays correctly."
 
+  - task: "Reddit Intelligence Navigation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/RedditDashboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Need to test navigation from homepage to Reddit Intelligence dashboard via user menu"
+
+  - task: "Reddit Dashboard Analytics Tab"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/RedditDashboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Need to test metrics cards, filters, and Reddit threads table functionality"
+
+  - task: "Reddit Dashboard Auto-Responses Tab"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/RedditDashboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Need to test Auto-Responses tab with Beta badge and Coming Soon message"
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
