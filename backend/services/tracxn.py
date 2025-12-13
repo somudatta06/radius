@@ -17,8 +17,11 @@ class TracxnService:
     
     def __init__(self):
         self.api_key = TRACXN_API_KEY
+        import base64
+        # Tracxn uses Basic Auth
+        auth_string = base64.b64encode(f"{self.api_key}:".encode()).decode()
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Basic {auth_string}",
             "Content-Type": "application/json"
         }
     
