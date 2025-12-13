@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Palette, Database } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BookOpen, Palette, Database, AlertTriangle } from "lucide-react";
 import LandingNav from "@/components/LandingNav";
 import Footer from "@/components/Footer";
 import { CompanyDescriptionTab } from "@/components/knowledge/CompanyDescriptionTab";
@@ -136,6 +138,30 @@ export default function KnowledgeBasePage() {
         </div>
       </main>
       <Footer />
+      
+      {/* Regenerate Confirmation Dialog */}
+      <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              Regenerate Knowledge Base?
+            </DialogTitle>
+            <DialogDescription>
+              This will re-analyze your website and regenerate all AI-generated content. 
+              Any manual edits you've made will be overwritten.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRegenerateDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRegenerate} disabled={isRegenerating}>
+              {isRegenerating ? "Regenerating..." : "Yes, Regenerate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
