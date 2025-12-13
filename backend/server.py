@@ -255,6 +255,66 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         print(f"Analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+@app.get("/api/competitors")
+async def discover_competitors(
+    keyword: str,
+    category: str = None,
+    limit: int = 10
+):
+    """
+    Discover and analyze competitors using Tracxn + OpenAI
+    
+    Query params:
+    - keyword: Search term (e.g., "AI analytics")
+    - category: Optional category filter
+    - limit: Max results (default 10)
+    """
+    try:
+        from services.tracxn import tracxn_service
+        from services.openai_analysis import openai_analysis_service
+        
+        # Step 1: Get competitors from Tracxn
+        if category:
+            competitors = tracxn_service.discover_by_category(category, limit)
+        else:
+            competitors = tracxn_service.search_competitors(keyword, limit)
+        
+        if not competitors:
+            return {
+                "competitors": [],
+                "analysis": {
+                    "competitorScores": [],
+                    "summary": "No competitors found for the given search criteria.",
+                    "recommendedStrategy": "Try different keywords or categories.",
+                    "marketInsights": "",
+                    "keyOpportunities": []
+                },
+                "metadata": {
+                    "keyword": keyword,
+                    "category": category,
+                    "count": 0
+                }
+            }
+        
+        # Step 2: Analyze with OpenAI
+        analysis = openai_analysis_service.analyze_competitors(competitors)
+        
+        # Step 3: Combine and return
+        return {
+            "competitors": competitors,
+            "analysis": analysis,
+            "metadata": {
+                "keyword": keyword,
+                "category": category,
+                "count": len(competitors),
+                "analyzedAt": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        print(f"Competitor discovery error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Discovery failed: {str(e)}")
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
