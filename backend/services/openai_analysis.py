@@ -152,7 +152,9 @@ Assess threat level based on direct competition and market overlap.
         competitor_scores = []
         
         for comp in competitors:
-            funding = comp.get('funding', {}).get('total', 0)
+            # Handle both dict and direct funding values
+            funding_data = comp.get('funding', 0)
+            funding = funding_data.get('total', 0) if isinstance(funding_data, dict) else funding_data
             
             # Simple scoring based on available data
             funding_score = min(100, funding / 10000000 * 50)  # $10M = 50 points
