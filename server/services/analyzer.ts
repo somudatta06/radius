@@ -1,4 +1,4 @@
-import { analyzeWithGPT } from './openai';
+import { analyzeWithGPT } from './anthropic';
 import { scrapeWebsite, type WebsiteInfo } from './scraper';
 import { tracxnService } from './tracxn';
 import type { AnalysisResult } from '@shared/schema';
