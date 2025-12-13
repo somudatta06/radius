@@ -216,10 +216,13 @@ CRITICAL RULES:
                 print(f"   Keys found: {list(overview.keys())}")
                 return False
             
-            # Check products section exists
+            # Check products section exists (handle both schemas)
             products = knowledge.get('products_and_services', {})
-            if not products.get('primary_offerings') or len(products.get('primary_offerings', [])) == 0:
-                print("❌ Validation failed: No products/offerings listed")
+            offerings = products.get('offerings') or products.get('primary_offerings') or []
+            
+            if not offerings or len(offerings) == 0:
+                print(f"❌ Validation failed: No products/offerings listed")
+                print(f"   Keys found: {list(products.keys())}")
                 return False
             
             # Check for placeholder language
