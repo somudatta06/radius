@@ -20,19 +20,28 @@ class KnowledgeSynthesizer:
     
     def synthesize_knowledge_base(self, scraped_data: Dict) -> Dict:
         """
-        Generate complete Knowledge Base from scraped website content
-        Returns structured KB ready for UI prefill
+        Generate HIGH-QUALITY Knowledge Base using structured GPT reasoning
+        Returns validated, cohesive business description
         """
         if not self.client:
+            print("⚠️  No OpenAI client - using fallback")
             return self._fallback_knowledge_base(scraped_data)
         
         try:
-            # Build context from scraped pages
-            context = self._build_context(scraped_data)
+            corpus = scraped_data.get('structured_corpus', {})
+            domain = scraped_data.get('domain', 'website')
             
-            # Generate structured knowledge using GPT
-            system_prompt = self._get_system_prompt()
-            user_prompt = self._get_user_prompt(context, scraped_data['domain'])
+            # Validate we have enough content
+            total_content = sum(len(v) for v in corpus.values())
+            if total_content < 200:
+                print(f"⚠️  Insufficient content ({total_content} chars) - using fallback")
+                return self._fallback_knowledge_base(scraped_data)
+            
+            print(f"🤖 Synthesizing knowledge with GPT (content: {total_content} chars)...")
+            
+            # Generate structured knowledge using GPT WITH REASONING
+            system_prompt = self._get_reasoning_system_prompt()
+            user_prompt = self._get_structured_user_prompt(corpus, domain)
             
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -41,41 +50,31 @@ class KnowledgeSynthesizer:
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2000,
+                max_tokens=3000,  # Increased for detailed output
                 response_format={"type": "json_object"}
             )
             
             # Parse GPT response
-            knowledge = json.loads(response.choices[0].message.content)
+            raw_output = response.choices[0].message.content
+            print(f"📄 GPT response length: {len(raw_output)} chars")
             
-            # Structure for backend
-            return {
-                "company_description": {
-                    "overview": knowledge.get("company_description", {}).get("overview", ""),
-                    "products_services": knowledge.get("company_description", {}).get("products_and_services", ""),
-                    "target_customers": knowledge.get("company_description", {}).get("target_customers", ""),
-                    "positioning": knowledge.get("company_description", {}).get("positioning", ""),
-                    "is_ai_generated": True,
-                    "generated_from": scraped_data.get('domain', 'website'),
-                },
-                "brand_guidelines": {
-                    "tone": knowledge.get("brand_guidelines", {}).get("brand_tone", "Professional"),
-                    "words_to_prefer": knowledge.get("brand_guidelines", {}).get("preferred_words", [])[:10],
-                    "words_to_avoid": knowledge.get("brand_guidelines", {}).get("words_to_avoid", [])[:10],
-                    "dos": knowledge.get("brand_guidelines", {}).get("style_rules", [])[:5],
-                    "donts": [],
-                    "is_ai_extracted": True,
-                },
-                "evidence": [],
-                "metadata": {
-                    "source": "ai_generated",
-                    "generated_from": scraped_data.get('domain', 'website'),
-                    "pages_analyzed": scraped_data.get('total_pages', 0)
-                }
-            }
+            knowledge = json.loads(raw_output)
+            
+            # QUALITY VALIDATION (reject low-quality output)
+            if not self._validate_quality(knowledge):
+                print("❌ Quality validation failed - using fallback")
+                return self._fallback_knowledge_base(scraped_data)
+            
+            # Transform structured GPT output into KB format
+            formatted_kb = self._format_knowledge_base(knowledge, domain, scraped_data.get('total_pages', 0))
+            
+            print("✅ High-quality KB generated and validated")
+            return formatted_kb
         
         except Exception as e:
-            print(f"GPT synthesis error: {str(e)}")
+            print(f"❌ GPT synthesis error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return self._fallback_knowledge_base(scraped_data)
     
     def _build_context(self, scraped_data: Dict) -> str:
