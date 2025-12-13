@@ -137,34 +137,17 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         # Scrape website
         website_info = scrape_website(url)
         
-        # Extract brand info using Claude
-        brand_prompt = f"""Analyze this website and extract brand information:
-
-Title: {website_info['title']}
-Description: {website_info['description']}
-Content: {website_info['textContent'][:1000]}
-
-Return JSON format:
-{{
-  "name": "Brand Name",
-  "domain": "domain.com",
-  "industry": "industry",
-  "description": "brief description"
-}}"""
+        # Extract brand info from website data
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        domain_name = parsed_url.netloc.replace('www.', '')
         
-        brand_response = analyze_with_claude(brand_prompt, "You are a brand analysis expert. Return only valid JSON.")
-        
-        # Parse brand info
-        import json
-        try:
-            brand_info = json.loads(brand_response)
-        except:
-            brand_info = {
-                "name": website_info['title'],
-                "domain": url,
-                "industry": "Unknown",
-                "description": website_info['description']
-            }
+        brand_info = {
+            "name": website_info['title'],
+            "domain": domain_name,
+            "industry": "Technology",
+            "description": website_info['description'] or f"Website analysis for {domain_name}"
+        }
         
         # Calculate platform scores
         base_score = 60
