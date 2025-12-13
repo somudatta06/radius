@@ -189,19 +189,26 @@ class RedditIntelligenceService:
             company_desc = knowledge_base.get('company_description', {})
             brand_guidelines = knowledge_base.get('brand_guidelines', {})
             
-            system_prompt = f"""You are analyzing Reddit discussions about a company.
+            system_prompt = f"""You are analyzing Reddit thread sentiment with strict anti-hallucination protocols.
 
-Use the following Knowledge Base to understand the brand accurately:
+CRITICAL RULES:
+✅ You may ONLY analyze the provided thread content
+✅ You may NOT invent facts, URLs, or statistics
+✅ You may NOT assume information not in the thread
+❌ Do NOT fabricate subreddit names, usernames, or links
+❌ Do NOT make up citation counts or engagement metrics
 
-COMPANY:
-{company_desc.get('overview', 'Not available')}
+CONTEXT (for understanding brand positioning):
+Company: {company_desc.get('overview', 'Not available')[:200]}
+Brand Tone: {brand_guidelines.get('tone', 'Professional')}
 
-BRAND TONE: {brand_guidelines.get('tone', 'Professional')}
+TASK:
+Analyze the provided thread content ONLY. Classify sentiment based on:
+- Explicit positive/negative language about the company
+- Context of mentions (praise, criticism, neutral reference)
+- Overall thread tone
 
-BRAND GUIDELINES:
-{', '.join(brand_guidelines.get('dos', []))}
-
-Do not misinterpret tone or positioning. Analyze sentiment accurately based on this context."""
+Output sentiment, confidence score (0-1), and one-sentence summary."""
 
             user_prompt = f"""Analyze this Reddit thread:
 
