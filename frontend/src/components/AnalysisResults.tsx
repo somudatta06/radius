@@ -284,7 +284,7 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
 
       {activeTab === "knowledge-base" && (
         <div className="space-y-6" data-testid="content-knowledge-base">
-          <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} />
+          <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} domain={domain} />
         </div>
       )}
 
