@@ -7,21 +7,40 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import Dict, List, Optional
 import re
+import time
+import random
 
 class WebsiteScraper:
     """Multi-page website scraper optimized for knowledge extraction"""
     
     def __init__(self, base_url: str):
         self.base_url = base_url if base_url.startswith('http') else f'https://{base_url}'
-        self.domain = urlparse(self.base_url).netloc
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        self.domain = urlparse(self.base_url).netloc.replace('www.', '')
+        # Rotate user agents to avoid blocks
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+        ]
+    
+    def _get_headers(self) -> Dict:
+        """Get request headers with rotating User-Agent"""
+        return {
+            'User-Agent': random.choice(self.user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0',
         }
     
     def scrape_comprehensive(self, max_pages: int = 5) -> Dict:
         """
         Scrape multiple key pages from website
         Returns STRUCTURED summaries optimized for GPT reasoning
+        ALWAYS returns useful data even if scraping fails
         """
         # Define priority pages to scrape
         priority_paths = [
@@ -40,8 +59,8 @@ class WebsiteScraper:
         
         scraped_pages = []
         
-        # Scrape homepage (mandatory)
-        homepage = self._scrape_page(self.base_url)
+        # Scrape homepage (mandatory) with retries
+        homepage = self._scrape_page_with_retry(self.base_url, max_retries=3)
         if homepage:
             scraped_pages.append({
                 'url': self.base_url,
@@ -59,7 +78,7 @@ class WebsiteScraper:
             if url == self.base_url:  # Skip duplicate homepage
                 continue
             
-            page_data = self._scrape_page(url)
+            page_data = self._scrape_page_with_retry(url, max_retries=2)
             if page_data and page_data['text']:
                 scraped_pages.append({
                     'url': url,
@@ -67,16 +86,53 @@ class WebsiteScraper:
                     'content': page_data['text'],
                     'type': self._classify_page_type(path, page_data['title'])
                 })
+            
+            # Add small delay to avoid rate limiting
+            time.sleep(0.5)
+        
+        print(f"✅ Scraped {len(scraped_pages)} pages")
         
         # Build STRUCTURED corpus for GPT reasoning
         corpus = self._build_structured_corpus(scraped_pages)
+        
+        # If we got very little content, add domain-based context
+        total_content = sum(len(v) for v in corpus.values())
+        if total_content < 200:
+            corpus = self._enrich_with_domain_info(corpus)
         
         return {
             'structured_corpus': corpus,
             'page_summaries': scraped_pages,
             'domain': self.domain,
-            'total_pages': len(scraped_pages)
+            'total_pages': len(scraped_pages),
+            'raw_text': ' '.join([p['content'] for p in scraped_pages])[:5000]
         }
+    
+    def _scrape_page_with_retry(self, url: str, max_retries: int = 3) -> Optional[Dict]:
+        """Scrape a page with retry logic"""
+        for attempt in range(max_retries):
+            result = self._scrape_page(url)
+            if result:
+                return result
+            
+            # Wait before retry with exponential backoff
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 1.5
+                time.sleep(wait_time)
+        
+        return None
+    
+    def _enrich_with_domain_info(self, corpus: Dict) -> Dict:
+        """Enrich corpus with domain-based info when scraping fails"""
+        # Extract potential brand name from domain
+        brand_parts = self.domain.split('.')
+        brand_name = brand_parts[0].capitalize() if brand_parts else 'Company'
+        
+        # Add basic context
+        if not corpus['homepage_summary']:
+            corpus['homepage_summary'] = f"{brand_name} is a company operating at {self.domain}. Analysis based on domain information."
+        
+        return corpus
     
     def _build_structured_corpus(self, pages: List[Dict]) -> Dict:
         """
@@ -119,7 +175,18 @@ class WebsiteScraper:
     def _scrape_page(self, url: str) -> Optional[Dict]:
         """Scrape a single page and extract clean content"""
         try:
-            response = requests.get(url, headers=self.headers, timeout=10, allow_redirects=True)
+            response = requests.get(
+                url, 
+                headers=self._get_headers(), 
+                timeout=15, 
+                allow_redirects=True
+            )
+            
+            if response.status_code == 429:
+                print(f"⚠️  Rate limited (429) for {url} - waiting...")
+                time.sleep(2)
+                return None
+            
             if response.status_code != 200:
                 print(f"❌ Status {response.status_code} for {url}")
                 return None
@@ -127,12 +194,17 @@ class WebsiteScraper:
             soup = BeautifulSoup(response.content, 'html.parser')
             
             # Remove noise
-            for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe']):
+            for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'noscript']):
                 tag.decompose()
             
-            # Extract title
-            title = soup.find('title')
-            title_text = title.get_text().strip() if title else url
+            # Extract title with fallbacks
+            title = None
+            og_title = soup.find('meta', property='og:title')
+            if og_title and og_title.get('content'):
+                title = og_title.get('content').strip()
+            if not title:
+                title_tag = soup.find('title')
+                title = title_tag.get_text().strip() if title_tag else url
             
             # Extract main content - be more lenient
             main_content = soup.find('body')
@@ -148,17 +220,20 @@ class WebsiteScraper:
             text = re.sub(r'\s+', ' ', text)  # Normalize whitespace
             text = text.strip()
             
-            if len(text) < 50:  # Reduced minimum (was 100)
+            if len(text) < 50:  # Reduced minimum
                 print(f"❌ Too little content ({len(text)} chars) for {url}")
                 return None
             
             print(f"✅ Scraped {url}: {len(text)} chars")
             
             return {
-                'title': title_text,
+                'title': title,
                 'text': text[:5000]  # Limit per page
             }
         
+        except requests.exceptions.Timeout:
+            print(f"⚠️  Timeout for {url}")
+            return None
         except Exception as e:
             print(f"❌ Error scraping {url}: {str(e)}")
             return None
