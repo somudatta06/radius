@@ -135,11 +135,13 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
             url = 'https://' + url
         
         # AUTOMATIC KNOWLEDGE BASE GENERATION
-        # Generate KB from website in the background (non-blocking)
+        # Generate KB from website (fire and forget - runs in background)
         try:
             from services.knowledge_service import knowledge_service
-            asyncio.create_task(knowledge_service.generate_from_website(url, company_id="default"))
-            print(f"🚀 Started KB generation for {url}")
+            # Start KB generation but don't wait for it (non-blocking)
+            task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id="default"))
+            # Optional: Add callback to log completion
+            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {url}"))
         except Exception as kb_error:
             print(f"⚠️  KB generation failed (non-critical): {str(kb_error)}")
         
