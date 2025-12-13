@@ -132,13 +132,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Company Description Tab Functionality"
-    - "Evidence Tab Functionality"
+    - "Reddit Intelligence Navigation"
+    - "Reddit Dashboard Analytics Tab"
+    - "Reddit Dashboard Auto-Responses Tab"
   stuck_tasks:
     - "Company Description Tab Functionality"
     - "Evidence Tab Functionality"
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "high_first"
   completed_tests:
     - "Knowledge Base Integration in Analysis Results"
 
