@@ -53,7 +53,11 @@ class TracxnService:
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Tracxn search error: {str(e)}")
-            return []
+            logger.info(f"Using mock data for search: {keyword}")
+            
+            # Fallback to mock data
+            from services.tracxn_mock import get_mock_competitors
+            return get_mock_competitors(keyword, limit)
     
     def get_competitor_details(self, company_id: str) -> Optional[Dict]:
         """
