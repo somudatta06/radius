@@ -30,6 +30,7 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { id: "overview", label: "Overview" },
+  { id: "visibility", label: "Visibility" },
   { id: "recommendations", label: "Recommendations" },
   { id: "score-breakdown", label: "Score Breakdown" },
   { id: "competitors", label: "Competitor Analysis" },
