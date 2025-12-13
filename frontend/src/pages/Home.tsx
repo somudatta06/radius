@@ -22,11 +22,12 @@ export default function Home() {
       return await response.json() as AnalysisResult;
     },
     onSuccess: (data) => {
-      // Hold result until timeline completes - no popup notifications
-      setPendingResult(data);
+      // Show results immediately after analysis completes
+      setAnalysisResult(data);
     },
     onError: (error: Error) => {
-      // Reset timeline on error - no popup notifications
+      // Reset state on error
+      setAnalysisResult(null);
       setPendingResult(null);
       console.error('Analysis failed:', error.message);
     },
