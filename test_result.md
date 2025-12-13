@@ -81,14 +81,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Knowledge Base Page Navigation"
-    - "Knowledge Base Tab Navigation"
     - "Company Description Tab Functionality"
-    - "Brand Guidelines Tab Functionality"
     - "Evidence Tab Functionality"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+  stuck_tasks:
+    - "Company Description Tab Functionality"
+    - "Evidence Tab Functionality"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "testing"
