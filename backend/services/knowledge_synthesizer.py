@@ -244,51 +244,52 @@ CRITICAL RULES:
     
     def _format_knowledge_base(self, knowledge: Dict, domain: str, pages_analyzed: int) -> Dict:
         """
-        Transform structured GPT output into Knowledge Base format
-        Combines multiple fields into cohesive sections
+        Transform reasoning-based GPT output into Knowledge Base format
+        Preserves inference metadata and confidence levels
         """
         overview_data = knowledge.get('company_overview', {})
         products_data = knowledge.get('products_and_services', {})
         customers_data = knowledge.get('target_customers', {})
         positioning_data = knowledge.get('market_positioning', {})
-        differentiators = knowledge.get('key_differentiators', [])
-        brand_data = knowledge.get('brand_tone_and_voice', {})
+        credibility_data = knowledge.get('credibility_and_signals', {})
+        confidence_data = knowledge.get('confidence_metadata', {})
         
         # Build cohesive overview section
-        overview_text = f"{overview_data.get('what_the_company_is', '')}\n\n"
-        overview_text += f"Mission: {overview_data.get('core_mission', '')}\n\n"
-        overview_text += f"Operations: {overview_data.get('where_it_operates', '')}"
+        overview_text = f"{overview_data.get('summary', '')}\n\n"
+        overview_text += f"Mission: {overview_data.get('mission', '')}\n\n"
+        overview_text += f"Business Type: {overview_data.get('business_type', '')}\n\n"
+        overview_text += f"Operating Model: {overview_data.get('operating_model', '')}"
         
-        # Build products section
-        products_text = f"Primary Offerings:\n"
-        for offering in products_data.get('primary_offerings', []):
+        # Build products section with delivery format emphasis
+        products_text = "Primary Offerings:\n"
+        for offering in products_data.get('offerings', []):
             products_text += f"• {offering}\n"
-        products_text += f"\nDelivery: {products_data.get('delivery_model', '')}\n\n"
-        products_text += "Key Outcomes:\n"
-        for outcome in products_data.get('key_outcomes_for_users', []):
+        products_text += f"\nDelivery Format:\n{products_data.get('delivery_format', '')}\n\n"
+        products_text += "Learning/Value Outcomes:\n"
+        for outcome in products_data.get('learning_or_value_outcomes', []):
             products_text += f"• {outcome}\n"
         
         # Build target customers section
-        customers_text = f"Primary Audience: {customers_data.get('primary_audience', '')}\n\n"
-        if customers_data.get('secondary_audience'):
-            customers_text += f"Secondary Audience: {customers_data.get('secondary_audience', '')}\n\n"
-        customers_text += "Customer Needs Addressed:\n"
-        for need in customers_data.get('customer_needs_solved', []):
-            customers_text += f"• {need}\n"
+        customers_text = f"Primary Audience:\n{customers_data.get('primary_audience', '')}\n\n"
+        if customers_data.get('secondary_audience') and customers_data.get('secondary_audience') != 'None clearly identified':
+            customers_text += f"Secondary Audience:\n{customers_data.get('secondary_audience', '')}\n\n"
+        customers_text += "Pain Points Addressed:\n"
+        for pain in customers_data.get('customer_pain_points', []):
+            customers_text += f"• {pain}\n"
         
-        # Build positioning section
+        # Build positioning section with differentiation emphasis
         positioning_text = f"Category: {positioning_data.get('category', '')}\n\n"
-        positioning_text += f"Differentiation: {positioning_data.get('how_it_is_different', '')}\n\n"
-        if positioning_data.get('alternatives_it_replaces'):
-            positioning_text += "Alternatives Replaced:\n"
-            for alt in positioning_data.get('alternatives_it_replaces', []):
-                positioning_text += f"• {alt}\n"
+        positioning_text += f"Positioning:\n{positioning_data.get('positioning_statement', '')}\n\n"
+        positioning_text += f"How It Differs:\n{positioning_data.get('how_it_differs_from_traditional_alternatives', '')}"
         
-        # Add differentiators to positioning
-        if differentiators:
-            positioning_text += "\nKey Differentiators:\n"
-            for diff in differentiators:
-                positioning_text += f"• {diff}\n"
+        # Add credibility signals if present
+        if credibility_data.get('founding_story_or_philosophy'):
+            positioning_text += f"\n\nFounder Philosophy:\n{credibility_data.get('founding_story_or_philosophy', '')}"
+        
+        if credibility_data.get('proof_points'):
+            positioning_text += "\n\nProof Points:\n"
+            for proof in credibility_data.get('proof_points', []):
+                positioning_text += f"• {proof}\n"
         
         return {
             "company_description": {
@@ -300,19 +301,24 @@ CRITICAL RULES:
                 "generated_from": domain,
             },
             "brand_guidelines": {
-                "tone": brand_data.get('tone', 'Professional'),
-                "words_to_prefer": [],  # Intentionally empty - user should fill
-                "words_to_avoid": brand_data.get('phrases_to_avoid', [])[:5],
-                "dos": brand_data.get('writing_style_rules', [])[:5],
+                "tone": "Professional",  # Can be enhanced from content analysis
+                "words_to_prefer": [],  # User should fill based on their brand
+                "words_to_avoid": [],
+                "dos": ["Use clear, specific language", "Focus on outcomes and value"],
                 "donts": [],
                 "is_ai_extracted": True,
             },
             "evidence": [],
             "metadata": {
-                "source": "ai_generated_validated",
+                "source": "ai_generated_inferred",
                 "generated_from": domain,
                 "pages_analyzed": pages_analyzed,
-                "quality": "validated"
+                "quality": "validated",
+                "confidence": {
+                    "explicit_ratio": confidence_data.get('explicit_information_ratio', '50%'),
+                    "inferred_ratio": confidence_data.get('inferred_information_ratio', '50%'),
+                    "notes": confidence_data.get('notes_on_inference', 'Analysis based on website signals and patterns')
+                }
             }
         }
     
