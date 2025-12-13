@@ -260,7 +260,7 @@ class RadiusLLMTester:
         
         return {
             'platform': 'Gemini',
-            'model': 'gemini-1.5-flash',
+            'model': 'gemini-2.0-flash',
             'available': True,
             'questions_tested': len(results),
             'mention_count': total_mentions,
