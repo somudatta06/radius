@@ -355,6 +355,71 @@ async def get_geographic_performance():
     from services.visibility_service import visibility_service
     return visibility_service.get_geographic_performance()
 
+@app.get("/api/knowledge-base")
+async def get_knowledge_base(company_id: str = Query("default")):
+    """Get complete knowledge base"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.get_knowledge_base(company_id)
+
+@app.post("/api/knowledge-base/company-description")
+async def update_company_description(
+    company_id: str = Query("default"),
+    description: Dict = None
+):
+    """Update company description"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.update_company_description(company_id, description)
+
+@app.post("/api/knowledge-base/improve")
+async def improve_text(
+    text: str,
+    mode: str = Query("improve", regex="^(improve|concise|authoritative|regenerate)$")
+):
+    """AI text improvement"""
+    from services.knowledge_service import knowledge_service
+    result = await knowledge_service.improve_with_ai(text, mode)
+    return {"improved_text": result}
+
+@app.post("/api/knowledge-base/brand-guidelines")
+async def update_brand_guidelines(
+    company_id: str = Query("default"),
+    guidelines: Dict = None
+):
+    """Update brand guidelines"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.update_brand_guidelines(company_id, guidelines)
+
+@app.post("/api/knowledge-base/extract-guidelines")
+async def extract_guidelines(url: str):
+    """Extract guidelines from URL"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.extract_guidelines_from_url(url)
+
+@app.post("/api/knowledge-base/evidence")
+async def add_evidence(
+    company_id: str = Query("default"),
+    evidence: Dict = None
+):
+    """Add evidence item"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.add_evidence(company_id, evidence)
+
+@app.get("/api/knowledge-base/evidence")
+async def get_evidence(company_id: str = Query("default")):
+    """Get all evidence"""
+    from services.knowledge_service import knowledge_service
+    return await knowledge_service.get_evidence(company_id)
+
+@app.delete("/api/knowledge-base/evidence/{evidence_id}")
+async def delete_evidence(
+    evidence_id: str,
+    company_id: str = Query("default")
+):
+    """Delete evidence item"""
+    from services.knowledge_service import knowledge_service
+    success = await knowledge_service.delete_evidence(company_id, evidence_id)
+    return {"success": success}
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
