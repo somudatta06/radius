@@ -8,17 +8,21 @@ import { useLocation } from "wouter";
 
 interface KnowledgeBaseSummaryPanelProps {
   brandName?: string;
+  domain?: string;  // Added domain prop to fetch domain-specific KB
 }
 
-export function KnowledgeBaseSummaryPanel({ brandName }: KnowledgeBaseSummaryPanelProps) {
+export function KnowledgeBaseSummaryPanel({ brandName, domain }: KnowledgeBaseSummaryPanelProps) {
   const [, navigate] = useLocation();
 
-  // Fetch knowledge base data
+  // Use domain as company_id for domain-specific KB
+  const companyId = domain?.replace(/\./g, '_') || 'default';
+
+  // Fetch knowledge base data for this specific domain
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/knowledge-base"],
+    queryKey: ["/api/knowledge-base", companyId],
     queryFn: async () => {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
-      const res = await fetch(`${backendUrl}/api/knowledge-base?company_id=default`);
+      const res = await fetch(`${backendUrl}/api/knowledge-base?company_id=${companyId}`);
       if (!res.ok) {
         throw new Error(`Failed to fetch: ${res.status}`);
       }
