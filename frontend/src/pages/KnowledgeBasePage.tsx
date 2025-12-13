@@ -12,9 +12,11 @@ import { EvidenceTab } from "@/components/knowledge/EvidenceTab";
 
 export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState("company");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   // Fetch knowledge base data
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/knowledge-base"],
     queryFn: async () => {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
@@ -26,6 +28,29 @@ export default function KnowledgeBasePage() {
     },
   });
 
+  const handleRegenerate = async () => {
+    // Get website URL from somewhere (you might need to pass this or store it)
+    const websiteUrl = data?.metadata?.generated_from || "example.com";
+    
+    setIsRegenerating(true);
+    try {
+      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
+      const res = await fetch(
+        `${backendUrl}/api/knowledge-base/regenerate?website_url=${encodeURIComponent(websiteUrl)}&company_id=default`,
+        { method: "POST" }
+      );
+      
+      if (res.ok) {
+        await refetch();
+        setShowRegenerateDialog(false);
+      }
+    } catch (err) {
+      console.error("Regeneration failed:", err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <LandingNav />
@@ -33,10 +58,27 @@ export default function KnowledgeBasePage() {
         <div className="container mx-auto px-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Knowledge Base</h1>
-            <p className="text-muted-foreground text-lg">
-              Your single source of truth for AI-generated content about your brand
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Knowledge Base</h1>
+                <p className="text-muted-foreground text-lg">
+                  Your single source of truth for AI-generated content about your brand
+                </p>
+              </div>
+              {data?.company_description?.is_ai_generated && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRegenerateDialog(true)}
+                  disabled={isRegenerating}
+                  className="gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {isRegenerating ? "Regenerating..." : "Regenerate from Website"}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Loading State */}
