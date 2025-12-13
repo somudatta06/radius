@@ -46,9 +46,10 @@ const tabs: TabConfig[] = [
 
 interface AnalysisResultsProps {
   data: AnalysisResult;
+  analysisId?: string;  // Analysis ID for per-analysis data fetching
 }
 
-export default function AnalysisResults({ data }: AnalysisResultsProps) {
+export default function AnalysisResults({ data, analysisId }: AnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -67,6 +68,10 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
 
   // Extract domain for use in components
   const domain = brandInfo.domain;
+  
+  // Use analysisId for per-analysis data (KB, Reddit, etc.)
+  // Falls back to domain-based ID for backward compatibility
+  const dataId = analysisId || domain?.replace(/\./g, '_') || 'default';
 
   // Calculate stats
   const mentionRate = dimensionScores.find(d => d.dimension === 'Mention Rate')?.score || 0;
