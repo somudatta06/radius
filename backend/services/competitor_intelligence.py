@@ -106,18 +106,33 @@ COMPANY DETAILS:
 
 {f'ADDITIONAL CONTEXT FROM WEBSITE:{chr(10)}{website_content[:1500]}' if website_content else ''}
 
-IMPORTANT: Focus on finding companies that:
-1. Offer IDENTICAL or very similar products/services
-2. Target the SAME customer segment
-3. Would be considered direct alternatives by customers
-4. Have similar business models and positioning
+CRITICAL REQUIREMENTS FOR COMPETITOR SELECTION:
 
-For example:
-- If this is a startup-focused business school in India, find OTHER startup-focused business schools (especially in India/Asia)
-- If this is a payment gateway, find OTHER payment gateways
-- If this is a project management tool, find OTHER project management tools
+1. DIRECT COMPETITORS ONLY - Companies that customers would directly compare and choose between
+2. SIMILAR BUSINESS MODEL - Same type of product/service delivery
+3. SAME TARGET MARKET - Companies targeting the exact same customer segment
+4. SIMILAR POSITIONING - Companies with similar market positioning (premium/budget, modern/traditional, etc.)
 
-Return the 5 most relevant DIRECT competitors, ranked by how directly they compete."""
+PRIORITIZATION (in order of importance):
+a) Newer/modern competitors with VERY similar positioning (HIGHEST PRIORITY)
+b) Direct alternatives customers actively compare
+c) Companies in the same specific niche
+d) Regional competitors in the same market
+
+For business schools example:
+- If this is a MODERN, STARTUP-FOCUSED school → find OTHER modern startup schools (like Masters Union, not traditional IIMs)
+- If this is a traditional MBA program → find other traditional MBA programs
+
+For tech companies:
+- If this is a specific SaaS tool → find OTHER tools in exact same category
+- If this is a payment processor → find OTHER payment processors
+
+DO NOT include:
+- Companies that are only tangentially related
+- Generic industry leaders that aren't true alternatives
+- Companies with different business models
+
+Return 5 competitors ranked by how DIRECTLY they compete (most similar first)."""
 
             response = self.client.chat.completions.create(
                 model="gpt-4o",  # Use more capable model for better accuracy
