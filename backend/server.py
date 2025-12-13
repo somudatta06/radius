@@ -335,11 +335,12 @@ async def competitors_endpoint(
 @app.get("/api/visibility/mention-rate")
 async def get_mention_rate(
     brand_id: str = Query("current", description="Brand ID"),
+    domain: str = Query(None, description="Domain to fetch competitors for"),
     start_date: str = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(None, description="End date (YYYY-MM-DD)"),
     provider: str = Query(None, description="AI provider filter")
 ):
-    """Get mention rate metrics"""
+    """Get mention rate metrics with REAL competitors"""
     from services.visibility_service import visibility_service
     from datetime import datetime, timedelta
     
@@ -347,8 +348,13 @@ async def get_mention_rate(
     end = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
     start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=30)
     
+    # Fetch REAL competitors if domain provided
+    competitors = None
+    if domain:
+        competitors = await visibility_service.get_competitors_for_domain(domain)
+    
     metrics = visibility_service.calculate_mention_rate(brand_id, start, end, provider)
-    rankings = visibility_service.get_mention_rate_rankings()
+    rankings = visibility_service.get_mention_rate_rankings(competitors)
     
     return {
         "metrics": metrics,
