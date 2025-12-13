@@ -577,6 +577,162 @@ async def get_analysis(analysis_id: str):
         print(f"❌ Error fetching analysis: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch analysis: {str(e)}")
 
+# ============================================
+# RADIUS INTELLIGENCE ENGINE ENDPOINTS
+# Full 8-Phase Analysis Pipeline
+# ============================================
+
+@app.post("/api/radius/analyze")
+async def radius_full_analysis(request: AnalyzeRequest):
+    """
+    RADIUS: Full 8-Phase AI Visibility Analysis
+    
+    Executes:
+    1. Company Discovery & Raw Data Collection
+    2. ChatGPT-Powered Refinement
+    3. Knowledge Base Creation
+    4. Question Framework Generation
+    5. Multi-LLM Visibility Testing
+    6. Scoring & Interpretation
+    7. User Interaction Support
+    8. Continuous Feedback Loop
+    """
+    from services.radius_engine import radius_engine
+    
+    try:
+        url = request.url
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Run full analysis pipeline
+        result = await radius_engine.run_full_analysis(
+            url=url,
+            run_llm_tests=True,  # Run full LLM tests
+            db=db
+        )
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Radius analysis error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@app.post("/api/radius/analyze-quick")
+async def radius_quick_analysis(request: AnalyzeRequest):
+    """
+    RADIUS: Quick Analysis (Phases 1-4 + Basic Scoring)
+    Skips LLM testing for faster results
+    """
+    from services.radius_engine import radius_engine
+    
+    try:
+        url = request.url
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Run analysis without LLM tests
+        result = await radius_engine.run_full_analysis(
+            url=url,
+            run_llm_tests=False,  # Skip expensive LLM tests
+            db=db
+        )
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Radius quick analysis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@app.get("/api/radius/analysis/{analysis_id}")
+async def get_radius_analysis(analysis_id: str):
+    """
+    Retrieve a Radius analysis by ID
+    """
+    try:
+        analysis = await db.radius_analyses.find_one(
+            {"analysisId": analysis_id},
+            {"_id": 0}
+        )
+        
+        if not analysis:
+            raise HTTPException(status_code=404, detail=f"Analysis not found: {analysis_id}")
+        
+        return analysis
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch analysis: {str(e)}")
+
+@app.get("/api/radius/test-question/{analysis_id}/{platform}")
+async def get_test_question(analysis_id: str, platform: str):
+    """
+    PHASE 7: Get pre-generated question for "Test in [LLM]" button
+    
+    CRITICAL: Returns question that was already generated and influenced score.
+    Never generates new questions at click-time.
+    """
+    from services.radius_engine import radius_engine
+    
+    try:
+        # Fetch analysis
+        analysis = await db.radius_analyses.find_one(
+            {"analysisId": analysis_id},
+            {"_id": 0}
+        )
+        
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        # Get pre-generated question
+        question = radius_engine.get_test_question(analysis, platform)
+        
+        if not question:
+            raise HTTPException(status_code=404, detail="No questions available")
+        
+        return question
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/radius/feedback/{analysis_id}")
+async def submit_kb_feedback(analysis_id: str, feedback: Dict[str, Any]):
+    """
+    PHASE 8: Submit feedback to refine Knowledge Base
+    """
+    from services.radius_engine import radius_engine
+    
+    try:
+        result = await radius_engine.refine_knowledge_base(
+            analysis_id=analysis_id,
+            user_feedback=feedback,
+            db=db
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/radius/api-status")
+async def check_api_status():
+    """
+    Check which LLM APIs are configured
+    """
+    import os
+    
+    return {
+        "openai": bool(os.getenv("OPENAI_API_KEY")),
+        "anthropic": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "gemini": bool(os.getenv("GEMINI_API_KEY")),
+        "perplexity": bool(os.getenv("PERPLEXITY_API_KEY")),
+        "message": "Configure missing API keys in backend/.env for full multi-LLM testing"
+    }
+
 @app.get("/api/competitors")
 async def competitors_endpoint(
     query: str = Query(..., description="Search query or keyword"),
