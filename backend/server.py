@@ -193,35 +193,105 @@ class AnalysisResponse(BaseModel):
     geoMetrics: Optional[Dict[str, Any]] = None
 
 # Helper functions
-def scrape_website(url: str) -> Dict[str, Any]:
-    """Scrape website content"""
+def extract_brand_name_from_url(url: str) -> str:
+    """Extract a clean brand name from URL as fallback"""
+    from urllib.parse import urlparse
     try:
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        
+        parsed = urlparse(url if url.startswith('http') else f'https://{url}')
+        domain = parsed.netloc.replace('www.', '')
+        # Get the main part before TLD
+        brand = domain.split('.')[0]
+        # Capitalize first letter
+        return brand.capitalize() if brand else "Unknown Brand"
+    except:
+        return "Unknown Brand"
+
+def scrape_website(url: str) -> Dict[str, Any]:
+    """Scrape website content with robust error handling"""
+    # Extract domain for fallback brand name
+    from urllib.parse import urlparse
+    
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.replace('www.', '')
+    fallback_brand = extract_brand_name_from_url(url)
+    
+    # Default response that never shows "Error"
+    default_response = {
+        'url': url,
+        'title': fallback_brand,  # Use brand name, never "Error"
+        'description': f'Analysis for {domain}',
+        'textContent': '',
+        'headings': [],
+        'hasFAQ': False,
+        'hasTestimonials': False,
+        'hasPricing': False,
+        'hasBlog': False,
+        'hasComparisons': False,
+        'scrapeSuccess': False
+    }
+    
+    try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
         }
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # Extract content
-        title = soup.find('title')
-        title_text = title.get_text().strip() if title else 'Untitled'
+        # Extract title with multiple fallbacks
+        title_text = None
         
+        # Try og:title first (usually cleaner)
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            title_text = og_title.get('content').strip()
+        
+        # Try regular title
+        if not title_text:
+            title_tag = soup.find('title')
+            if title_tag:
+                title_text = title_tag.get_text().strip()
+        
+        # Try h1
+        if not title_text:
+            h1_tag = soup.find('h1')
+            if h1_tag:
+                title_text = h1_tag.get_text().strip()
+        
+        # Clean up title - remove common suffixes
+        if title_text:
+            # Remove common website title patterns
+            for sep in [' | ', ' - ', ' — ', ' : ', ' :: ']:
+                if sep in title_text:
+                    parts = title_text.split(sep)
+                    # Take the shortest meaningful part (usually brand name)
+                    title_text = min([p.strip() for p in parts if len(p.strip()) > 2], key=len, default=title_text)
+                    break
+        
+        # Final fallback to domain-based brand name
+        if not title_text or title_text.lower() in ['error', 'untitled', '404', 'not found', 'access denied']:
+            title_text = fallback_brand
+        
+        # Get meta description with fallback
         meta_desc = soup.find('meta', attrs={'name': 'description'})
-        description = meta_desc.get('content', '') if meta_desc else ''
+        if not meta_desc:
+            meta_desc = soup.find('meta', property='og:description')
+        description = meta_desc.get('content', '').strip() if meta_desc else f'{title_text} - {domain}'
         
         # Get text content
-        for script in soup(['script', 'style']):
+        for script in soup(['script', 'style', 'nav', 'footer', 'header']):
             script.decompose()
         text_content = soup.get_text()
         text_content = ' '.join(text_content.split())[:5000]
         
         # Get headings
-        headings = [h.get_text().strip() for h in soup.find_all(['h1', 'h2', 'h3'])]
+        headings = [h.get_text().strip() for h in soup.find_all(['h1', 'h2', 'h3']) if h.get_text().strip()][:20]
         
         return {
             'url': url,
@@ -230,25 +300,23 @@ def scrape_website(url: str) -> Dict[str, Any]:
             'textContent': text_content,
             'headings': headings,
             'hasFAQ': 'faq' in text_content.lower(),
-            'hasTestimonials': 'testimonial' in text_content.lower(),
+            'hasTestimonials': 'testimonial' in text_content.lower() or 'review' in text_content.lower(),
             'hasPricing': 'pricing' in text_content.lower() or 'price' in text_content.lower(),
             'hasBlog': 'blog' in text_content.lower(),
             'hasComparisons': 'vs' in text_content.lower() or 'compare' in text_content.lower(),
+            'scrapeSuccess': True
         }
+    except requests.exceptions.Timeout:
+        print(f"⚠️  Scraping timeout for {url}")
+        default_response['description'] = f'{fallback_brand} - Website took too long to respond'
+        return default_response
+    except requests.exceptions.HTTPError as e:
+        print(f"⚠️  HTTP error scraping {url}: {e}")
+        default_response['description'] = f'{fallback_brand} - {domain}'
+        return default_response
     except Exception as e:
-        print(f"Scraping error: {str(e)}")
-        return {
-            'url': url,
-            'title': 'Error',
-            'description': '',
-            'textContent': '',
-            'headings': [],
-            'hasFAQ': False,
-            'hasTestimonials': False,
-            'hasPricing': False,
-            'hasBlog': False,
-            'hasComparisons': False,
-        }
+        print(f"⚠️  Scraping error for {url}: {str(e)}")
+        return default_response
 
 def analyze_with_claude(prompt: str, system_prompt: str = "") -> str:
     """Analyze using Claude API"""
