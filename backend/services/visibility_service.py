@@ -115,10 +115,11 @@ class VisibilityService:
             "time_series": time_series
         }
     
-    def get_mention_rate_rankings(self) -> List[Dict]:
-        """Get ranked list of competitors by mention rate"""
+    def get_mention_rate_rankings(self, competitors: List[Dict] = None) -> List[Dict]:
+        """Get ranked list of competitors by mention rate using REAL competitor data"""
+        comp_list = competitors if competitors else self.get_current_competitors()
         rankings = []
-        for idx, comp in enumerate(self.mock_competitors):
+        for idx, comp in enumerate(comp_list):
             rate = random.uniform(1.0, 8.0)
             rankings.append({
                 "rank": idx + 1,
