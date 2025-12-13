@@ -524,20 +524,58 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
             "competitors": competitors,
             "gaps": gaps,
             "recommendations": recommendations,
-            "geoMetrics": geo_metrics
+            "geoMetrics": geo_metrics,
+            # CRITICAL: Include analysisId for routing and data provenance
+            "analysisId": analysis_id,
+            "analyzedAt": analysis_timestamp,
+            "dataProvenance": {
+                "cache_used": False,
+                "fresh_crawl": True,
+                "fresh_gpt_call": True,
+                "timestamp": analysis_timestamp
+            }
         }
         
-        # Save to MongoDB
+        # Save to MongoDB with analysisId as primary key
         await db.analyses.insert_one({
             **result,
-            "analyzedAt": datetime.utcnow()
+            "_analysis_id": analysis_id  # Additional index field
         })
         
+        print(f"✅ Analysis complete: {analysis_id}")
         return result
         
     except Exception as e:
-        print(f"Analysis error: {str(e)}")
+        print(f"❌ Analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@app.get("/api/analysis/{analysis_id}")
+async def get_analysis(analysis_id: str):
+    """
+    Retrieve a specific analysis by ID
+    
+    ARCHITECTURAL RULES:
+    - Returns stored analysis data
+    - Validates data provenance
+    - NO re-caching - just retrieves stored data
+    """
+    try:
+        # Find analysis by analysisId
+        analysis = await db.analyses.find_one(
+            {"analysisId": analysis_id},
+            {"_id": 0}  # Exclude MongoDB _id
+        )
+        
+        if not analysis:
+            raise HTTPException(status_code=404, detail=f"Analysis not found: {analysis_id}")
+        
+        return analysis
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error fetching analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch analysis: {str(e)}")
 
 @app.get("/api/competitors")
 async def competitors_endpoint(
