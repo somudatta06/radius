@@ -1,29 +1,79 @@
 """
 Visibility Analytics Service
-Calculates GEO/AI visibility metrics
+Calculates GEO/AI visibility metrics with REAL competitor data
 """
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
 import random
+import os
+from motor.motor_asyncio import AsyncIOMotorClient
 
 class VisibilityService:
-    """Service for calculating visibility metrics"""
+    """Service for calculating visibility metrics with dynamic competitor data"""
     
     def __init__(self):
-        # Competitors will be dynamically set from analysis
-        self._competitors = []
-        self.fallback_competitors = [
-            {"id": "comp1", "name": "Competitor A", "is_manual": False},
-            {"id": "comp2", "name": "Competitor B", "is_manual": False},
-            {"id": "comp3", "name": "Competitor C", "is_manual": False},
-            {"id": "comp4", "name": "Competitor D", "is_manual": False},
+        # MongoDB connection for fetching real competitor data
+        mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+        self.mongo_client = AsyncIOMotorClient(mongo_url)
+        self.db = self.mongo_client.radius_db
+        
+        # Cache for current session competitors
+        self._current_competitors = []
+        self._current_brand_name = None
+    
+    async def get_competitors_for_domain(self, domain: str) -> List[Dict]:
+        """
+        Fetch REAL competitors from MongoDB based on analysis domain
+        This ensures visibility shows the same competitors as the main analysis
+        """
+        try:
+            # Find the most recent analysis for this domain
+            analysis = await self.db.analyses.find_one(
+                {"brandInfo.domain": {"$regex": domain.replace(".", "\\."), "$options": "i"}},
+                sort=[("analyzedAt", -1)],
+                projection={"competitors": 1, "brandInfo": 1, "_id": 0}
+            )
+            
+            if analysis and analysis.get("competitors"):
+                competitors = analysis["competitors"]
+                self._current_brand_name = analysis.get("brandInfo", {}).get("name", "You")
+                
+                # Transform to visibility format
+                result = []
+                for comp in competitors:
+                    result.append({
+                        "id": f"comp{comp.get('rank', 0)}",
+                        "name": comp.get("name", "Unknown"),
+                        "is_manual": False,
+                        "is_current": comp.get("isCurrentBrand", False)
+                    })
+                
+                self._current_competitors = result
+                print(f"✅ Loaded {len(result)} REAL competitors for domain: {domain}")
+                for c in result:
+                    print(f"   - {c['name']} (current: {c['is_current']})")
+                return result
+            else:
+                print(f"⚠️  No analysis found for domain: {domain}")
+                return self._fallback_competitors()
+        except Exception as e:
+            print(f"❌ Error fetching competitors: {str(e)}")
+            return self._fallback_competitors()
+    
+    def _fallback_competitors(self) -> List[Dict]:
+        """Fallback when no real data available"""
+        return [
+            {"id": "comp1", "name": "Competitor A", "is_manual": False, "is_current": False},
+            {"id": "comp2", "name": "Competitor B", "is_manual": False, "is_current": False},
+            {"id": "comp3", "name": "Competitor C", "is_manual": False, "is_current": False},
+            {"id": "comp4", "name": "Competitor D", "is_manual": False, "is_current": False},
             {"id": "comp5", "name": "You", "is_manual": False, "is_current": True},
         ]
     
     def set_competitors(self, competitors: List[Dict]):
-        """Set real competitors from analysis"""
-        self._competitors = [
+        """Set competitors directly (for immediate use after analysis)"""
+        self._current_competitors = [
             {
                 "id": f"comp{c.get('rank', idx)}",
                 "name": c.get('name', 'Unknown'),
@@ -32,12 +82,11 @@ class VisibilityService:
             }
             for idx, c in enumerate(competitors, 1)
         ]
-        print(f"✅ Visibility service updated with {len(self._competitors)} competitors")
+        print(f"✅ Visibility service updated with {len(self._current_competitors)} competitors")
     
-    @property
-    def mock_competitors(self):
-        """Get competitors (real if set, fallback otherwise)"""
-        return self._competitors if self._competitors else self.fallback_competitors
+    def get_current_competitors(self) -> List[Dict]:
+        """Get current session competitors"""
+        return self._current_competitors if self._current_competitors else self._fallback_competitors()
     
     def calculate_mention_rate(
         self,
