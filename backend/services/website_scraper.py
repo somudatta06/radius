@@ -21,7 +21,7 @@ class WebsiteScraper:
     def scrape_comprehensive(self, max_pages: int = 5) -> Dict:
         """
         Scrape multiple key pages from website
-        Returns structured content optimized for GPT synthesis
+        Returns STRUCTURED summaries optimized for GPT reasoning
         """
         # Define priority pages to scrape
         priority_paths = [
@@ -34,11 +34,11 @@ class WebsiteScraper:
             '/pricing',
             '/how-it-works',
             '/careers',
-            '/blog',
+            '/team',
+            '/why-us',
         ]
         
         scraped_pages = []
-        total_text = []
         
         # Scrape homepage (mandatory)
         homepage = self._scrape_page(self.base_url)
@@ -49,7 +49,6 @@ class WebsiteScraper:
                 'content': homepage['text'],
                 'type': 'homepage'
             })
-            total_text.append(homepage['text'])
         
         # Try to find and scrape priority pages
         for path in priority_paths:
@@ -68,22 +67,54 @@ class WebsiteScraper:
                     'content': page_data['text'],
                     'type': self._classify_page_type(path, page_data['title'])
                 })
-                total_text.append(page_data['text'])
         
-        # Combine and clean all text
-        combined_text = '\n\n'.join(total_text)
-        cleaned_text = self._clean_text(combined_text)
-        
-        # Limit token count (roughly 3000 tokens = 12000 chars)
-        if len(cleaned_text) > 12000:
-            cleaned_text = cleaned_text[:12000] + '...'
+        # Build STRUCTURED corpus for GPT reasoning
+        corpus = self._build_structured_corpus(scraped_pages)
         
         return {
-            'raw_text': cleaned_text,
+            'structured_corpus': corpus,
             'page_summaries': scraped_pages,
             'domain': self.domain,
             'total_pages': len(scraped_pages)
         }
+    
+    def _build_structured_corpus(self, pages: List[Dict]) -> Dict:
+        """
+        Build structured summaries by page type for GPT reasoning
+        This is CRITICAL for quality output
+        """
+        corpus = {
+            'homepage_summary': '',
+            'about_summary': '',
+            'offerings_summary': '',
+            'positioning_clues': ''
+        }
+        
+        for page in pages:
+            content = page['content'][:2000]  # Limit per page
+            page_type = page['type']
+            
+            if page_type == 'homepage':
+                corpus['homepage_summary'] = content
+            elif page_type == 'about':
+                corpus['about_summary'] = content
+            elif page_type in ['products', 'general']:
+                if corpus['offerings_summary']:
+                    corpus['offerings_summary'] += '\n\n' + content
+                else:
+                    corpus['offerings_summary'] = content
+            elif page_type in ['careers', 'pricing']:
+                if corpus['positioning_clues']:
+                    corpus['positioning_clues'] += '\n\n' + content
+                else:
+                    corpus['positioning_clues'] = content
+        
+        # Clean each summary
+        for key in corpus:
+            if corpus[key]:
+                corpus[key] = self._clean_text(corpus[key])[:1500]  # Limit each section
+        
+        return corpus
     
     def _scrape_page(self, url: str) -> Optional[Dict]:
         """Scrape a single page and extract clean content"""
