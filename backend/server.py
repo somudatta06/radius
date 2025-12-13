@@ -9,6 +9,10 @@ import anthropic
 import requests
 from bs4 import BeautifulSoup
 import asyncio
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI(title="Radius GEO Analytics API")
 
