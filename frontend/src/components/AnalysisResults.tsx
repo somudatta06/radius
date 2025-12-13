@@ -18,6 +18,7 @@ import { PDFReport } from "@/components/PDFReport";
 import { BriefSection } from "@/components/BriefSection";
 import { JavaScriptHeavyErrorModal } from "@/components/JavaScriptHeavyErrorModal";
 import { KnowledgeBaseSummaryPanel } from "@/components/KnowledgeBaseSummaryPanel";
+import { RedditAnalyticsTab } from "@/components/reddit/RedditAnalyticsTab";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
 import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
@@ -290,6 +291,12 @@ export default function AnalysisResults({ data }: AnalysisResultsProps) {
       {activeTab === "visibility" && (
         <div className="space-y-6" data-testid="content-visibility">
           <VisibilityDashboard brandId={brandInfo?.name} />
+        </div>
+      )}
+
+      {activeTab === "reddit" && (
+        <div className="space-y-6" data-testid="content-reddit">
+          <RedditAnalyticsTab brandName={brandInfo?.name} />
         </div>
       )}
 
