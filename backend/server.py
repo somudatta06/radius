@@ -452,6 +452,53 @@ async def regenerate_knowledge_base(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Regeneration failed: {str(e)}")
 
+@app.get("/api/reddit/metrics")
+async def get_reddit_metrics(
+    brand_name: str = Query("default")
+):
+    """Get Reddit intelligence metrics"""
+    from services.reddit_intelligence import reddit_service
+    metrics = await reddit_service.get_reddit_metrics(brand_name)
+    return metrics
+
+@app.get("/api/reddit/threads")
+async def get_reddit_threads(
+    brand_name: str = Query("default"),
+    search: Optional[str] = Query(None),
+    filter: Optional[str] = Query(None),
+    sentiment: Optional[str] = Query(None)
+):
+    """Get Reddit threads with brand/competitor mentions"""
+    from services.reddit_intelligence import reddit_service
+    threads = await reddit_service.get_reddit_threads(
+        brand_name=brand_name,
+        search_query=search,
+        filter_type=filter,
+        sentiment_filter=sentiment
+    )
+    return threads
+
+@app.post("/api/reddit/analyze-thread")
+async def analyze_reddit_thread(
+    title: str = Query(...),
+    content: str = Query(...),
+    company_id: str = Query("default")
+):
+    """
+    Analyze a Reddit thread with Knowledge Base context
+    Returns KB-aware sentiment and summary
+    """
+    from services.reddit_intelligence import reddit_service
+    from services.knowledge_service import knowledge_service
+    
+    # Get KB for context
+    kb = await knowledge_service.get_knowledge_base(company_id)
+    
+    # Analyze with KB
+    analysis = await reddit_service.analyze_thread_with_kb(title, content, kb)
+    
+    return analysis
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}
