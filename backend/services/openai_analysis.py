@@ -80,16 +80,25 @@ class OpenAIAnalysisService:
         """Prepare competitor data for OpenAI prompt"""
         summaries = []
         for idx, comp in enumerate(competitors, 1):
+            # Handle both dict and direct funding values
+            funding_data = comp.get('funding', 0)
+            if isinstance(funding_data, dict):
+                funding_amount = funding_data.get('total', 0)
+                funding_stage = funding_data.get('stage', 'Unknown')
+            else:
+                funding_amount = funding_data
+                funding_stage = comp.get('stage', 'Unknown')
+            
             summary = f"""
 Competitor {idx}:
 - Name: {comp.get('name', 'Unknown')}
 - Website: {comp.get('website', 'N/A')}
 - Category: {comp.get('category', 'Unknown')}
 - Description: {comp.get('description', 'N/A')}
-- Funding: ${comp.get('funding', {}).get('total', 0):,} ({comp.get('funding', {}).get('stage', 'Unknown')})
+- Funding: ${funding_amount:,} ({funding_stage})
 - Stage: {comp.get('stage', 'Unknown')}
-- Employees: {comp.get('employees', 'Unknown')}
-- Founded: {comp.get('founded', 'Unknown')}
+- Employees: {comp.get('employeeSize', comp.get('employees', 'Unknown'))}
+- Founded: {comp.get('foundedYear', comp.get('founded', 'Unknown'))}
 """
             summaries.append(summary)
         
