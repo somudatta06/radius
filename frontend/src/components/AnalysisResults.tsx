@@ -21,7 +21,7 @@ import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
+type Tab = "overview" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "accuracy";
 
 interface TabConfig {
   id: Tab;
