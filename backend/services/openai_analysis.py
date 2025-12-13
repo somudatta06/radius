@@ -167,9 +167,15 @@ Assess threat level based on direct competition and market overlap.
             
             # Simple scoring based on available data
             funding_score = min(100, funding / 10000000 * 50)  # $10M = 50 points
-            stage_score = {"seed": 40, "series_a": 60, "series_b": 80, "series_c": 90, "ipo": 100}.get(
-                comp.get('funding', {}).get('stage', '').lower(), 50
-            )
+            
+            # Get stage from either funding dict or comp directly
+            stage = comp.get('stage', 'unknown')
+            if isinstance(stage, str):
+                stage_score = {"seed": 40, "series_a": 60, "series a": 60, "series_b": 80, "series b": 80, 
+                              "series_c": 90, "series c": 90, "series_g": 95, "series g": 95,
+                              "ipo": 100, "acquired": 90}.get(stage.lower().replace(' ', '_'), 50)
+            else:
+                stage_score = 50
             
             overall_score = int((funding_score + stage_score) / 2)
             
