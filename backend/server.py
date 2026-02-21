@@ -5,7 +5,10 @@ from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional, List, Dict, Any
 import os
 from datetime import datetime, timezone
-import anthropic
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -24,9 +27,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:5173",
         "https://radius-analytics.preview.emergentagent.com",
         "https://knowledge-hub-303.preview.emergentagent.com"
     ],
+    allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,12 +39,24 @@ app.add_middleware(
 
 # Database connection
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-client = AsyncIOMotorClient(MONGO_URL)
-db = client.radius_db
+try:
+    client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+    db = client.radius_db
+    _mongo_connected = True
+except Exception as e:
+    print(f"⚠️ MongoDB connection error: {e} — app will serve demo data")
+    client = None
+    db = None
+    _mongo_connected = False
 
-# Anthropic client (initialize lazily to avoid startup errors)
+# Anthropic client (optional — app works without it)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-anthropic_client = None  # Will initialize on first use if needed
+anthropic_client = None
+if ANTHROPIC_API_KEY and anthropic:
+    try:
+        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    except Exception:
+        pass
 
 # In-memory session storage (for simplicity - use Redis in production)
 sessions: Dict[str, Dict] = {}
@@ -339,7 +356,19 @@ def analyze_with_claude(prompt: str, system_prompt: str = "") -> str:
 # API Routes
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "radius-api"}
+    mongo_ok = False
+    if db is not None:
+        try:
+            await db.command("ping")
+            mongo_ok = True
+        except Exception:
+            pass
+    return {
+        "status": "healthy",
+        "service": "radius-api",
+        "mongodb": "connected" if mongo_ok else "unavailable (demo mode)",
+        "openai": bool(os.getenv("OPENAI_API_KEY"))
+    }
 
 @app.post("/api/analyze")
 async def analyze_website_endpoint(request: AnalyzeRequest):

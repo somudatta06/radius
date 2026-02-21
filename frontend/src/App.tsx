@@ -7,6 +7,8 @@ import Home from "@/pages/Home";
 import AnalysisPage from "@/pages/AnalysisPage";
 import Dashboard from "@/pages/Dashboard";
 import CompetitorPage from "@/pages/CompetitorPage";
+import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
+import RedditDashboard from "@/pages/RedditDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/analysis/:analysisId" component={AnalysisPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/competitors" component={CompetitorPage} />
+      <Route path="/knowledge-base" component={KnowledgeBasePage} />
+      <Route path="/reddit" component={RedditDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
