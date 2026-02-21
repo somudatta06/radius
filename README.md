@@ -312,7 +312,7 @@ Brands are blind to their AI visibility. We built the first analytics tool for t
 
 **Live Video:** https://www.loom.com/share/e3f5aad36f3b4951b6ca39006fb400f7
 
-**GitHub:** https://github.com/somudatta/radius_replit
+**GitHub:** https://github.com/samridh8081-design/radius_emergent
 
 ---
 
