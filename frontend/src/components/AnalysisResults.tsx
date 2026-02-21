@@ -21,11 +21,14 @@ import { KnowledgeBaseSummaryPanel } from "@/components/KnowledgeBaseSummaryPane
 import { RedditAnalyticsTab } from "@/components/reddit/RedditAnalyticsTab";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
 import { GapAnalysis } from "@/components/GapAnalysis";
+import { AdIntelligence } from "@/components/AdIntelligence";
+import { ContentPipeline } from "@/components/ContentPipeline";
+import { SearchIntelligence } from "@/components/SearchIntelligence";
 import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "reddit" | "accuracy" | "gap-analysis";
+type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "reddit" | "accuracy" | "gap-analysis" | "ad-intelligence" | "content-pipeline" | "search-intelligence";
 
 interface TabConfig {
   id: Tab;
@@ -44,6 +47,9 @@ const tabs: TabConfig[] = [
   { id: "discovery", label: "Competitor Discovery" },
   { id: "accuracy", label: "Accuracy Check" },
   { id: "gap-analysis", label: "Gap Analysis" },
+  { id: "ad-intelligence", label: "Ad Intelligence" },
+  { id: "content-pipeline", label: "Content Pipeline" },
+  { id: "search-intelligence", label: "Search & SGE" },
 ];
 
 interface AnalysisResultsProps {
@@ -400,6 +406,33 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
               analysisId={dataId}
               category={brandInfo?.industry}
               platformScores={platformScores}
+            />
+          </div>
+        )}
+        {activeTab === "ad-intelligence" && (
+          <div className="space-y-6" data-testid="content-ad-intelligence">
+            <AdIntelligence
+              brandName={brandInfo?.name}
+              analysisId={dataId}
+              category={brandInfo?.industry}
+            />
+          </div>
+        )}
+        {activeTab === "content-pipeline" && (
+          <div className="space-y-6" data-testid="content-content-pipeline">
+            <ContentPipeline
+              brandName={brandInfo?.name}
+              analysisId={dataId}
+              category={brandInfo?.industry}
+            />
+          </div>
+        )}
+        {activeTab === "search-intelligence" && (
+          <div className="space-y-6" data-testid="content-search-intelligence">
+            <SearchIntelligence
+              brandName={brandInfo?.name}
+              analysisId={dataId}
+              category={brandInfo?.industry}
             />
           </div>
         )}

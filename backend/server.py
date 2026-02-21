@@ -1035,6 +1035,84 @@ async def gap_analysis_endpoint(request: dict):
         print(f"Gap analysis error: {e}")
         return svc._demo_data()
 
+@app.post("/api/ad-intelligence")
+async def ad_intelligence_endpoint(request: dict):
+    """
+    Get advertising intelligence insights.
+    ONE GPT-4o-mini call.
+    """
+    from services.ad_intelligence import AdIntelligenceService
+    svc = AdIntelligenceService()
+    try:
+        result = await svc.analyze_ads(
+            brand_name=request.get("brand_name", ""),
+            category=request.get("category", ""),
+            website_data=request.get("website_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"Ad intelligence error: {e}")
+        return svc._demo_data()
+
+@app.post("/api/content-pipeline/social")
+async def content_pipeline_social(request: dict):
+    """Social conversation intelligence"""
+    from services.social_scraper import SocialScraperService
+    svc = SocialScraperService()
+    try:
+        return await svc.scrape_social(
+            keywords=request.get("keywords", []),
+            brand_name=request.get("brand_name", ""),
+        )
+    except Exception as e:
+        print(f"Social scraper error: {e}")
+        return svc._demo_data()
+
+@app.post("/api/content-pipeline/blog")
+async def content_pipeline_blog(request: dict):
+    """SEO blog generation"""
+    from services.blog_engine import BlogEngineService
+    svc = BlogEngineService()
+    try:
+        return await svc.generate_blog(
+            topic=request.get("topic", ""),
+            brand_name=request.get("brand_name", ""),
+            keywords=request.get("keywords", []),
+            social_data=request.get("social_data", {}),
+        )
+    except Exception as e:
+        print(f"Blog engine error: {e}")
+        return svc._demo_data()
+
+@app.post("/api/content-pipeline/export")
+async def content_pipeline_export(request: dict):
+    """CMS export"""
+    from services.cms_exporter import CMSExporterService
+    svc = CMSExporterService()
+    try:
+        return svc.export(
+            content=request.get("content", {}),
+            format=request.get("format", "json"),
+        )
+    except Exception as e:
+        print(f"CMS export error: {e}")
+        return {"error": str(e)}
+
+@app.post("/api/search-intelligence")
+async def search_intelligence_endpoint(request: dict):
+    """Search & SGE Intelligence"""
+    from services.search_intelligence import SearchIntelligenceService
+    svc = SearchIntelligenceService()
+    try:
+        return await svc.analyze_search(
+            brand_name=request.get("brand_name", ""),
+            category=request.get("category", ""),
+            website_data=request.get("website_data", {}),
+        )
+    except Exception as e:
+        print(f"Search intelligence error: {e}")
+        return svc._demo_data()
+
 @app.post("/api/generate-brief")
 async def generate_brief(request: dict):
     """
