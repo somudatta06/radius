@@ -1,10 +1,10 @@
-import { Target, Star, Award, Lightbulb, BarChart3, CheckCircle, FileText, Download } from 'lucide-react';
+import { Target, Star, Award, Lightbulb, BarChart3, CheckCircle, FileText, Download, Brain, TrendingUp, MessageSquare, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FeatureCardProps {
   title: string;
   description: string;
-  visualization: 'chart' | 'recommendations' | 'table' | 'download-report';
+  visualization: 'chart' | 'recommendations' | 'table' | 'download-report' | 'gap' | 'ads' | 'pipeline';
 }
 
 const FeatureCard = ({ title, description, visualization, animationDelay }: FeatureCardProps & { animationDelay?: string }) => {
@@ -23,7 +23,10 @@ const FeatureCard = ({ title, description, visualization, animationDelay }: Feat
         {visualization === 'recommendations' && <RecommendationsVisualization />}
         {visualization === 'table' && <TableVisualization />}
         {visualization === 'download-report' && <DownloadReportVisualization />}
-        
+        {visualization === 'gap' && <GapVisualization />}
+        {visualization === 'ads' && <AdsVisualization />}
+        {visualization === 'pipeline' && <PipelineVisualization />}
+
         <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-all duration-300" />
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-b-2xl" />
@@ -134,11 +137,10 @@ const TableVisualization = () => (
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm font-bold text-foreground">{item.score}</span>
-            <span className={`text-xs font-semibold ${
-              item.positive === true ? 'text-primary' : 
-              item.positive === false ? 'text-destructive' : 
-              'text-muted-foreground'
-            }`}>
+            <span className={`text-xs font-semibold ${item.positive === true ? 'text-primary' :
+              item.positive === false ? 'text-destructive' :
+                'text-muted-foreground'
+              }`}>
               {item.trend}
             </span>
           </div>
@@ -189,6 +191,79 @@ const DownloadReportVisualization = () => (
   </div>
 );
 
+const GapVisualization = () => (
+  <div className="w-full h-full p-6 flex items-center justify-center">
+    <div className="flex-1 space-y-4">
+      {[
+        { dim: 'Quality', ai: 85, people: 62 },
+        { dim: 'Price', ai: 70, people: 45 },
+        { dim: 'Trust', ai: 78, people: 55 },
+      ].map((item, idx) => (
+        <div key={idx} className="space-y-1">
+          <div className="flex justify-between text-xs font-medium">
+            <span>{item.dim}</span>
+            <span className="text-muted-foreground">Gap: {item.ai - item.people}pts</span>
+          </div>
+          <div className="flex gap-1">
+            <div className="flex-1">
+              <div className="h-3 rounded-l-full bg-foreground" style={{ width: `${item.ai}%` }} />
+              <span className="text-[10px] text-muted-foreground">AI: {item.ai}%</span>
+            </div>
+            <div className="flex-1">
+              <div className="h-3 rounded-r-full bg-muted-foreground/40" style={{ width: `${item.people}%` }} />
+              <span className="text-[10px] text-muted-foreground">People: {item.people}%</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const AdsVisualization = () => (
+  <div className="w-full h-full p-6 flex flex-col justify-center gap-3">
+    {[
+      { ch: 'Google Ads', cpc: '$0.45', eff: 78 },
+      { ch: 'Instagram', cpc: '$0.25', eff: 82 },
+      { ch: 'YouTube', cpc: '$0.12', eff: 71 },
+    ].map((item, idx) => (
+      <div key={idx} className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
+        <div className="flex-1">
+          <p className="text-sm font-semibold">{item.ch}</p>
+          <p className="text-xs text-muted-foreground">CPC: {item.cpc}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-16 rounded-full bg-muted">
+            <div className="h-2 rounded-full bg-foreground" style={{ width: `${item.eff}%` }} />
+          </div>
+          <span className="text-xs font-bold">{item.eff}%</span>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const PipelineVisualization = () => (
+  <div className="w-full h-full p-6 flex items-center justify-center">
+    <div className="flex items-center gap-3">
+      {[
+        { label: 'Social', icon: '📡' },
+        { label: 'Angles', icon: '💡' },
+        { label: 'Blog', icon: '📝' },
+        { label: 'Export', icon: '📤' },
+      ].map((step, idx) => (
+        <div key={idx} className="flex items-center gap-2">
+          <div className="w-16 h-16 bg-card border-2 border-border rounded-xl flex flex-col items-center justify-center hover-elevate transition-all">
+            <span className="text-xl">{step.icon}</span>
+            <span className="text-[10px] font-medium mt-1">{step.label}</span>
+          </div>
+          {idx < 3 && <span className="text-muted-foreground text-xl">→</span>}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export const FeaturesSection = () => {
   const features = [
     {
@@ -210,6 +285,21 @@ export const FeaturesSection = () => {
       title: 'Download Comprehensive Report',
       description: 'Export a detailed PDF report with all metrics, insights, and recommendations for your team.',
       visualization: 'download-report' as const,
+    },
+    {
+      title: 'Perception Gap Analysis',
+      description: 'Discover the gap between how AI describes your brand vs. what real consumers actually say on Reddit and Twitter.',
+      visualization: 'gap' as const,
+    },
+    {
+      title: 'Ad Intelligence',
+      description: 'Keyword opportunities, channel strategies, competitor ad spend estimates, and budget recommendations.',
+      visualization: 'ads' as const,
+    },
+    {
+      title: 'Content Pipeline',
+      description: 'Automated 4-step pipeline: social intelligence → content angles → SEO blog generation → CMS export.',
+      visualization: 'pipeline' as const,
     },
   ];
 
@@ -243,7 +333,7 @@ export const FeaturesSection = () => {
           ))}
         </div>
 
-        
+
       </div>
     </section>
   );

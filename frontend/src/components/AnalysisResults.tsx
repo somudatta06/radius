@@ -24,6 +24,8 @@ import { GapAnalysis } from "@/components/GapAnalysis";
 import { AdIntelligence } from "@/components/AdIntelligence";
 import { ContentPipeline } from "@/components/ContentPipeline";
 import { SearchIntelligence } from "@/components/SearchIntelligence";
+import { BrandIntelligenceHeader } from "@/components/BrandIntelligenceHeader";
+import { ExecutiveSummary } from "@/components/ExecutiveSummary";
 import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
@@ -117,6 +119,18 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
       )}
 
       <main className="container mx-auto px-6 py-8 pt-28">
+        {/* Brand Intelligence Dashboard Header */}
+        <BrandIntelligenceHeader
+          brandName={brandInfo?.name}
+          overallScore={data.overallScore ?? 65}
+        />
+
+        {/* Executive Summary */}
+        <ExecutiveSummary
+          brandName={brandInfo?.name}
+          overallScore={data.overallScore ?? 65}
+        />
+
         {/* Header with PDF Export */}
         <div className="flex items-center justify-between mb-8">
           <div>
