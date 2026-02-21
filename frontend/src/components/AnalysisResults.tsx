@@ -20,11 +20,12 @@ import { JavaScriptHeavyErrorModal } from "@/components/JavaScriptHeavyErrorModa
 import { KnowledgeBaseSummaryPanel } from "@/components/KnowledgeBaseSummaryPanel";
 import { RedditAnalyticsTab } from "@/components/reddit/RedditAnalyticsTab";
 import { METRIC_DEFINITIONS } from "@/lib/geo-constants";
+import { GapAnalysis } from "@/components/GapAnalysis";
 import type { AnalysisResult } from "@/types/schema";
 import type { ReportData } from "@/lib/geo-types";
 import { format } from 'date-fns';
 
-type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "reddit" | "accuracy";
+type Tab = "overview" | "knowledge-base" | "visibility" | "recommendations" | "score-breakdown" | "competitors" | "methodology" | "discovery" | "reddit" | "accuracy" | "gap-analysis";
 
 interface TabConfig {
   id: Tab;
@@ -42,6 +43,7 @@ const tabs: TabConfig[] = [
   { id: "methodology", label: "Methodology" },
   { id: "discovery", label: "Competitor Discovery" },
   { id: "accuracy", label: "Accuracy Check" },
+  { id: "gap-analysis", label: "Gap Analysis" },
 ];
 
 interface AnalysisResultsProps {
@@ -53,7 +55,7 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  const { 
+  const {
     brandInfo, overallScore, platformScores, dimensionScores, competitors, gaps, recommendations,
     geoMetrics, competitorAnalysis, platformScoreDetails, accuracyChecks, quickWins, strategicBets,
     error, qualityWarning
@@ -68,7 +70,7 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
 
   // Extract domain for use in components
   const domain = brandInfo.domain;
-  
+
   // Use analysisId for per-analysis data (KB, Reddit, etc.)
   // Falls back to domain-based ID for backward compatibility
   const dataId = analysisId || domain?.replace(/\./g, '_') || 'default';
@@ -127,273 +129,281 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
           </div>
           {pdfReportData && <PDFReport data={pdfReportData} />}
         </div>
-      {/* Liquid Glass Tab Navigation */}
-      <div className="mb-12">
-        <div className="flex items-center justify-between gap-2 p-1.5 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg overflow-x-auto">
-          {/* Left-aligned tabs */}
-          <div className="flex items-center gap-2">
-            {tabs.filter(tab => tab.id !== "methodology").map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                data-testid={`tab-${tab.id}`}
-                className={`
+        {/* Liquid Glass Tab Navigation */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between gap-2 p-1.5 bg-card/90 backdrop-blur-xl border border-border rounded-full shadow-lg overflow-x-auto">
+            {/* Left-aligned tabs */}
+            <div className="flex items-center gap-2">
+              {tabs.filter(tab => tab.id !== "methodology").map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  data-testid={`tab-${tab.id}`}
+                  className={`
                   px-4 py-2.5 rounded-full font-medium text-xs sm:text-sm whitespace-nowrap
                   transition-all duration-300 ease-out
                   relative overflow-hidden
-                  ${
-                    activeTab === tab.id
+                  ${activeTab === tab.id
                       ? "bg-foreground text-background shadow-md"
                       : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  }
+                    }
                 `}
-              >
-                {activeTab === tab.id && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/10 to-transparent pointer-events-none" />
-                )}
-                <span className="relative z-10">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* Right-aligned Methodology tab */}
-          <div className="flex items-center">
-            <button
-              onClick={() => setActiveTab("methodology")}
-              data-testid="tab-methodology"
-              className={`
+                >
+                  {activeTab === tab.id && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/10 to-transparent pointer-events-none" />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Right-aligned Methodology tab */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setActiveTab("methodology")}
+                data-testid="tab-methodology"
+                className={`
                 px-4 py-2.5 rounded-full font-medium text-xs sm:text-sm whitespace-nowrap
                 transition-all duration-300 ease-out
                 relative overflow-hidden
-                ${
-                  activeTab === "methodology"
+                ${activeTab === "methodology"
                     ? "bg-foreground text-background shadow-md"
                     : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                }
+                  }
               `}
-            >
-              {activeTab === "methodology" && (
-                <div className="absolute inset-0 bg-gradient-to-t from-background/10 to-transparent pointer-events-none" />
-              )}
-              <span className="relative z-10">Methodology</span>
-            </button>
+              >
+                {activeTab === "methodology" && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/10 to-transparent pointer-events-none" />
+                )}
+                <span className="relative z-10">Methodology</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="space-y-8" data-testid="content-overview">
-          {/* GEO Metrics */}
-          {geoMetrics && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <MetricCard
-                score={geoMetrics.aic}
-                label="AIC"
-                sublabel="Answerability & Intent Coverage"
-                showInfoButton={true}
-                metricDefinition={METRIC_DEFINITIONS.AIC}
-                metricCode="AIC"
+        {/* Tab Content */}
+        {activeTab === "overview" && (
+          <div className="space-y-8" data-testid="content-overview">
+            {/* GEO Metrics */}
+            {geoMetrics && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <MetricCard
+                  score={geoMetrics.aic}
+                  label="AIC"
+                  sublabel="Answerability & Intent Coverage"
+                  showInfoButton={true}
+                  metricDefinition={METRIC_DEFINITIONS.AIC}
+                  metricCode="AIC"
+                />
+                <MetricCard
+                  score={geoMetrics.ces}
+                  label="CES"
+                  sublabel="Credibility, Evidence & Safety"
+                  showInfoButton={true}
+                  metricDefinition={METRIC_DEFINITIONS.CES}
+                  metricCode="CES"
+                />
+                <MetricCard
+                  score={geoMetrics.mts}
+                  label="MTS"
+                  sublabel="Machine-Readability & Technical"
+                  showInfoButton={true}
+                  metricDefinition={METRIC_DEFINITIONS.MTS}
+                  metricCode="MTS"
+                />
+              </div>
+            )}
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard
+                title="Overall Score"
+                value={overallScore}
+                subtitle={`${100 - overallScore} points potential`}
+                icon={TrendingUp}
+                trend="up"
               />
-              <MetricCard
-                score={geoMetrics.ces}
-                label="CES"
-                sublabel="Credibility, Evidence & Safety"
-                showInfoButton={true}
-                metricDefinition={METRIC_DEFINITIONS.CES}
-                metricCode="CES"
+              <StatsCard
+                title="Mention Rate"
+                value={`${mentionRate}%`}
+                subtitle="In AI responses"
+                icon={Target}
               />
-              <MetricCard
-                score={geoMetrics.mts}
-                label="MTS"
-                sublabel="Machine-Readability & Technical"
-                showInfoButton={true}
-                metricDefinition={METRIC_DEFINITIONS.MTS}
-                metricCode="MTS"
+              <StatsCard
+                title="Competitor Position"
+                value={`#${yourRank}`}
+                subtitle={`Out of ${totalCompetitors} competitors`}
+                icon={Users}
+              />
+              <StatsCard
+                title="Platform Average"
+                value={avgPlatformScore}
+                subtitle="Across 4 AI platforms"
+                icon={Zap}
               />
             </div>
-          )}
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard
-              title="Overall Score"
-              value={overallScore}
-              subtitle={`${100 - overallScore} points potential`}
-              icon={TrendingUp}
-              trend="up"
-            />
-            <StatsCard
-              title="Mention Rate"
-              value={`${mentionRate}%`}
-              subtitle="In AI responses"
-              icon={Target}
-            />
-            <StatsCard
-              title="Competitor Position"
-              value={`#${yourRank}`}
-              subtitle={`Out of ${totalCompetitors} competitors`}
-              icon={Users}
-            />
-            <StatsCard
-              title="Platform Average"
-              value={avgPlatformScore}
-              subtitle="Across 4 AI platforms"
-              icon={Zap}
+            {/* Test in AI Platforms */}
+            <div className="border rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Test Your Visibility Live</h3>
+              <p className="text-sm text-muted-foreground">
+                See how AI platforms respond to queries about your brand right now
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <OpenInAIButton
+                  platform="ChatGPT"
+                  query={`What are the top companies in the ${brandInfo.industry || 'industry'} space?`}
+                  context={{ brandName: brandInfo.name }}
+                />
+                <OpenInAIButton
+                  platform="Claude"
+                  query={`Compare the leading solutions for ${brandInfo.industry || 'this category'}`}
+                  context={{ brandName: brandInfo.name }}
+                />
+                <OpenInAIButton
+                  platform="Perplexity"
+                  query={`Who are the main competitors of ${brandInfo.name}?`}
+                  context={{ brandName: brandInfo.name }}
+                />
+                <OpenInAIButton
+                  platform="Gemini"
+                  query={`What is ${brandInfo.name}?`}
+                  context={{ brandName: brandInfo.name }}
+                />
+              </div>
+            </div>
+
+            {/* Platform Comparison */}
+            <div>
+              <PlatformComparison data={platformScores} />
+            </div>
+
+            {/* AI-Generated Brief */}
+            <BriefSection
+              overallScore={overallScore}
+              platformScores={platformScores}
+              brandName={brandInfo.name}
+              domain={domain}
             />
           </div>
+        )}
 
-          {/* Test in AI Platforms */}
-          <div className="border rounded-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Test Your Visibility Live</h3>
-            <p className="text-sm text-muted-foreground">
-              See how AI platforms respond to queries about your brand right now
+        {activeTab === "knowledge-base" && (
+          <div className="space-y-6" data-testid="content-knowledge-base">
+            <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} domain={domain} analysisId={dataId} />
+          </div>
+        )}
+
+        {activeTab === "visibility" && (
+          <div className="space-y-6" data-testid="content-visibility">
+            <VisibilityDashboard brandId={brandInfo?.name} domain={domain} />
+          </div>
+        )}
+
+        {activeTab === "reddit" && (
+          <div className="space-y-6" data-testid="content-reddit">
+            <RedditAnalyticsTab brandName={brandInfo?.name} analysisId={dataId} />
+          </div>
+        )}
+
+        {activeTab === "recommendations" && (
+          <div className="space-y-6" data-testid="content-recommendations">
+            <h2 className="text-2xl font-bold">AI-Generated Recommendations</h2>
+            <p className="text-muted-foreground">
+              Actionable insights to improve your AI visibility and platform performance
             </p>
-            <div className="flex flex-wrap gap-3">
-              <OpenInAIButton
-                platform="ChatGPT"
-                query={`What are the top companies in the ${brandInfo.industry || 'industry'} space?`}
-                context={{ brandName: brandInfo.name }}
-              />
-              <OpenInAIButton
-                platform="Claude"
-                query={`Compare the leading solutions for ${brandInfo.industry || 'this category'}`}
-                context={{ brandName: brandInfo.name }}
-              />
-              <OpenInAIButton
-                platform="Perplexity"
-                query={`Who are the main competitors of ${brandInfo.name}?`}
-                context={{ brandName: brandInfo.name }}
-              />
-              <OpenInAIButton
-                platform="Gemini"
-                query={`What is ${brandInfo.name}?`}
-                context={{ brandName: brandInfo.name }}
-              />
+
+            {/* Missing Elements Card - Always First */}
+            {gaps && gaps.length > 0 && (
+              <MissingElementsCard gaps={gaps} />
+            )}
+
+            {/* Recommendations Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {recommendations.map((rec, idx: number) => (
+                <RecommendationCard
+                  key={idx}
+                  title={rec.title}
+                  description={rec.description}
+                  priority={rec.priority}
+                  category={rec.category}
+                  actionItems={rec.actionItems}
+                  estimatedImpact={rec.estimatedImpact}
+                />
+              ))}
             </div>
           </div>
-
-          {/* Platform Comparison */}
-          <div>
-            <PlatformComparison data={platformScores} />
+        )}
+        {activeTab === "score-breakdown" && (
+          <div className="space-y-6" data-testid="content-score-breakdown">
+            <h2 className="text-2xl font-bold">Dimension Analysis</h2>
+            <ScoreBreakdown data={dimensionScores} />
+            <MetricInfoCards data={dimensionScores} />
           </div>
-
-          {/* AI-Generated Brief */}
-          <BriefSection
-            overallScore={overallScore}
-            platformScores={platformScores}
-            brandName={brandInfo.name}
-            domain={domain}
-          />
-        </div>
-      )}
-
-      {activeTab === "knowledge-base" && (
-        <div className="space-y-6" data-testid="content-knowledge-base">
-          <KnowledgeBaseSummaryPanel brandName={brandInfo?.name} domain={domain} analysisId={dataId} />
-        </div>
-      )}
-
-      {activeTab === "visibility" && (
-        <div className="space-y-6" data-testid="content-visibility">
-          <VisibilityDashboard brandId={brandInfo?.name} domain={domain} />
-        </div>
-      )}
-
-      {activeTab === "reddit" && (
-        <div className="space-y-6" data-testid="content-reddit">
-          <RedditAnalyticsTab brandName={brandInfo?.name} analysisId={dataId} />
-        </div>
-      )}
-
-      {activeTab === "recommendations" && (
-        <div className="space-y-6" data-testid="content-recommendations">
-          <h2 className="text-2xl font-bold">AI-Generated Recommendations</h2>
-          <p className="text-muted-foreground">
-            Actionable insights to improve your AI visibility and platform performance
-          </p>
-          
-          {/* Missing Elements Card - Always First */}
-          {gaps && gaps.length > 0 && (
-            <MissingElementsCard gaps={gaps} />
-          )}
-
-          {/* Recommendations Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {recommendations.map((rec, idx: number) => (
-              <RecommendationCard 
-                key={idx}
-                title={rec.title}
-                description={rec.description}
-                priority={rec.priority}
-                category={rec.category}
-                actionItems={rec.actionItems}
-                estimatedImpact={rec.estimatedImpact}
+        )}
+        {activeTab === "competitors" && (
+          <div className="space-y-8" data-testid="content-competitors">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Competitor Rankings</h2>
+              <p className="text-muted-foreground">Discover how you stack up against your competition</p>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {competitors.map((competitor) => (
+                <CompetitorCard
+                  key={competitor.rank}
+                  rank={competitor.rank}
+                  name={competitor.name}
+                  domain={competitor.domain}
+                  score={competitor.score}
+                  marketOverlap={competitor.marketOverlap}
+                  strengths={competitor.strengths}
+                  isCurrentBrand={competitor.isCurrentBrand || false}
+                  funding={competitor.funding}
+                  employees={competitor.employees}
+                  founded={competitor.founded}
+                  description={competitor.description}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {activeTab === "methodology" && (
+          <div className="space-y-6" data-testid="content-methodology">
+            <CalculationMethodology />
+          </div>
+        )}
+        {activeTab === "discovery" && (
+          <div className="space-y-6" data-testid="content-discovery">
+            <CompetitorDiscovery />
+            {competitorAnalysis && competitorAnalysis.length > 1 && (
+              <CompetitorComparison
+                userBrand={competitorAnalysis[0]}
+                competitors={competitorAnalysis.slice(1)}
               />
-            ))}
+            )}
           </div>
-        </div>
-      )}
-      {activeTab === "score-breakdown" && (
-        <div className="space-y-6" data-testid="content-score-breakdown">
-          <h2 className="text-2xl font-bold">Dimension Analysis</h2>
-          <ScoreBreakdown data={dimensionScores} />
-          <MetricInfoCards data={dimensionScores} />
-        </div>
-      )}
-      {activeTab === "competitors" && (
-        <div className="space-y-8" data-testid="content-competitors">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Competitor Rankings</h2>
-            <p className="text-muted-foreground">Discover how you stack up against your competition</p>
+        )}
+        {activeTab === "accuracy" && (
+          <div className="space-y-6" data-testid="content-accuracy">
+            {accuracyChecks && accuracyChecks.length > 0 ? (
+              <AccuracyIndicator accuracyChecks={accuracyChecks} />
+            ) : (
+              <div className="text-center text-muted-foreground py-12">
+                No accuracy check data available
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {competitors.map((competitor) => (
-              <CompetitorCard 
-                key={competitor.rank} 
-                rank={competitor.rank}
-                name={competitor.name}
-                domain={competitor.domain}
-                score={competitor.score}
-                marketOverlap={competitor.marketOverlap}
-                strengths={competitor.strengths}
-                isCurrentBrand={competitor.isCurrentBrand || false}
-                funding={competitor.funding}
-                employees={competitor.employees}
-                founded={competitor.founded}
-                description={competitor.description}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      {activeTab === "methodology" && (
-        <div className="space-y-6" data-testid="content-methodology">
-          <CalculationMethodology />
-        </div>
-      )}
-      {activeTab === "discovery" && (
-        <div className="space-y-6" data-testid="content-discovery">
-          <CompetitorDiscovery />
-          {competitorAnalysis && competitorAnalysis.length > 1 && (
-            <CompetitorComparison
-              userBrand={competitorAnalysis[0]}
-              competitors={competitorAnalysis.slice(1)}
+        )}
+        {activeTab === "gap-analysis" && (
+          <div className="space-y-6" data-testid="content-gap-analysis">
+            <GapAnalysis
+              brandName={brandInfo?.name}
+              analysisId={dataId}
+              category={brandInfo?.industry}
+              platformScores={platformScores}
             />
-          )}
-        </div>
-      )}
-      {activeTab === "accuracy" && (
-        <div className="space-y-6" data-testid="content-accuracy">
-          {accuracyChecks && accuracyChecks.length > 0 ? (
-            <AccuracyIndicator accuracyChecks={accuracyChecks} />
-          ) : (
-            <div className="text-center text-muted-foreground py-12">
-              No accuracy check data available
-            </div>
-          )}
-        </div>
-      )}
-    </main>
+          </div>
+        )}
+      </main>
     </>
   );
 }

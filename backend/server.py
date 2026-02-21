@@ -1015,6 +1015,26 @@ async def analyze_reddit_thread(
     
     return analysis
 
+@app.post("/api/gap-analysis")
+async def gap_analysis_endpoint(request: dict):
+    """
+    Analyze perception gap between AI and consumers.
+    ONE GPT-4o-mini call.
+    """
+    from services.gap_analysis import GapAnalysisService
+    svc = GapAnalysisService()
+    try:
+        result = await svc.analyze_gap(
+            brand_name=request.get("brand_name", ""),
+            category=request.get("category", ""),
+            ai_scores=request.get("ai_scores", {}),
+            website_data=request.get("website_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"Gap analysis error: {e}")
+        return svc._demo_data()
+
 @app.post("/api/generate-brief")
 async def generate_brief(request: dict):
     """
