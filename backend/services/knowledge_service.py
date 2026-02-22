@@ -30,38 +30,45 @@ class KnowledgeService:
     
     async def generate_from_website(self, website_url: str, company_id: str = "default") -> Dict:
         """
-        Generate Knowledge Base by scraping and analyzing website
-        This is the automatic bootstrapping pipeline
+        Generate Knowledge Base by scraping and analyzing website.
+        Runs the synchronous scraper in a thread to avoid blocking the event loop.
         """
+        import asyncio
         try:
             print(f"🔍 Scraping website: {website_url}")
-            
-            # Step 1: Scrape website comprehensively
-            scraper = WebsiteScraper(website_url)
-            scraped_data = scraper.scrape_comprehensive(max_pages=5)
-            
+
+            # Run synchronous scraper in a thread pool so it doesn't block the event loop
+            loop = asyncio.get_event_loop()
+            def _scrape():
+                scraper = WebsiteScraper(website_url)
+                return scraper.scrape_comprehensive(max_pages=3)  # cap at 3 pages
+
+            scraped_data = await asyncio.wait_for(
+                loop.run_in_executor(None, _scrape),
+                timeout=15.0  # hard 15s cap for knowledge base scraping
+            )
+
             print(f"✅ Scraped {scraped_data['total_pages']} pages")
-            
-            # Step 2: Synthesize knowledge using GPT
+
+            # Synthesize knowledge using GPT
             print(f"🤖 Synthesizing knowledge with GPT...")
             knowledge = self.synthesizer.synthesize_knowledge_base(scraped_data)
-            
-            # Step 3: Add timestamps
+
             knowledge['created_at'] = datetime.utcnow().isoformat()
             knowledge['updated_at'] = datetime.utcnow().isoformat()
             knowledge['company_description']['last_edited'] = datetime.utcnow().isoformat()
             knowledge['brand_guidelines']['last_edited'] = datetime.utcnow().isoformat()
-            
-            # Step 4: Store in memory
+
             _knowledge_store[company_id] = knowledge
-            
             print(f"✅ Knowledge Base generated for {company_id}")
-            
             return knowledge
-        
+
+        except asyncio.TimeoutError:
+            print(f"⚠️ KB scraping timed out for {website_url} — using empty KB")
+            _knowledge_store[company_id] = self._empty_knowledge_base()
+            return _knowledge_store[company_id]
         except Exception as e:
             print(f"❌ Error generating KB from website: {str(e)}")
-            # Return fallback
             return self._empty_knowledge_base()
     
     def _empty_knowledge_base(self) -> Dict:

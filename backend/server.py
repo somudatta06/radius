@@ -36,9 +36,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database connection
+# Database connection — short timeouts so the server never hangs waiting for Mongo
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-client = AsyncIOMotorClient(MONGO_URL)
+client = AsyncIOMotorClient(
+    MONGO_URL,
+    serverSelectionTimeoutMS=2000,
+    connectTimeoutMS=2000,
+    socketTimeoutMS=2000,
+)
 db = client.radius_db
 
 # OpenAI client (only supported LLM)
@@ -258,7 +263,7 @@ def scrape_website(url: str) -> Dict[str, Any]:
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
         }
-        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+        response = requests.get(url, headers=headers, timeout=6, allow_redirects=True)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -502,9 +507,26 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         except Exception as kb_error:
             print(f"⚠️  KB generation skipped: {kb_error}")
 
-        # FRESH WEBSITE SCRAPE
+        # FRESH WEBSITE SCRAPE — hard 10s timeout so slow sites don't block analysis
         print(f"🌐 Scraping: {url}")
-        website_info = scrape_website(url)
+        try:
+            loop = asyncio.get_event_loop()
+            website_info = await asyncio.wait_for(
+                loop.run_in_executor(None, scrape_website, url),
+                timeout=10.0
+            )
+        except asyncio.TimeoutError:
+            print(f"⚠️  Scrape timeout for {url} — continuing with fallbacks")
+            from urllib.parse import urlparse as _up
+            _d = _up(url).netloc.replace("www.", "")
+            website_info = {
+                "url": url, "title": extract_brand_name_from_url(url),
+                "description": f"Analysis for {_d}",
+                "textContent": "", "headings": [],
+                "hasFAQ": False, "hasTestimonials": False,
+                "hasPricing": False, "hasBlog": False,
+                "hasComparisons": False, "scrapeSuccess": False
+            }
 
         # Brand name cleanup
         brand_name = website_info['title']
