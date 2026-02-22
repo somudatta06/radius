@@ -5,23 +5,24 @@ India-specific search query analysis with SGE prediction
 import os
 import json
 from typing import Dict, Any
-from openai import OpenAI
 
 
 class SearchIntelligenceService:
     """Analyzes search landscape and predicts SGE impact"""
 
-    def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if os.getenv("OPENAI_API_KEY") else None
-
     async def analyze_search(self, brand_name: str, category: str, website_data: dict) -> dict:
         """ONE GPT call for search intelligence"""
-        if not self.client:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("⚠️ OPENAI_API_KEY not set — SearchIntelligenceService returning demo data")
             return self._demo_data(brand_name)
+
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
 
         try:
             site_summary = str(website_data)[:600] if website_data else ""
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{
                     "role": "user",
@@ -33,13 +34,13 @@ Website: {site_summary}
 
 Analyze the search landscape for this brand in India, including Google SGE (Search Generative Experience) impact.
 
-Return ONLY valid JSON:
+You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks.
 {{
   "search_visibility_score": 0-100,
   "sge_readiness_score": 0-100,
   "query_coverage": [
-    {{"query": "search query", "intent": "informational/transactional/navigational", "current_position": "1-10 or 'not ranking'", "sge_risk": "high/medium/low", "action": "string"}}
-    ...at least 8 queries
+    {{"query": "search query", "intent": "informational/transactional/navigational", "current_position": "1-10 or 'not ranking'", "sge_risk": "high/medium/low", "action": "string"}},
+    ...at least 8 queries specific to {brand_name}
   ],
   "sge_impact": {{
     "queries_at_risk": number,
@@ -47,23 +48,33 @@ Return ONLY valid JSON:
     "mitigation_strategy": "string"
   }},
   "missing_opportunities": [
-    {{"query": "string", "monthly_volume": "string", "difficulty": "easy/medium/hard", "recommendation": "string"}}
+    {{"query": "string", "monthly_volume": "string", "difficulty": "easy/medium/hard", "recommendation": "string"}},
     ...at least 4 opportunities
   ],
   "featured_snippet_opportunities": [
     {{"query": "string", "snippet_type": "paragraph/list/table", "action": "string"}}
   ],
-  "executive_summary": "2-3 sentence summary"
+  "executive_summary": "2-3 sentence summary specific to {brand_name}"
 }}"""
                 }],
                 max_tokens=1500,
                 temperature=0.7
             )
-            result = json.loads(response.choices[0].message.content)
+            raw = response.choices[0].message.content.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+            raw = raw.strip()
+            result = json.loads(raw)
             result["is_demo"] = False
+            print(f"✅ SearchIntelligenceService returned real data for {brand_name}")
             return result
+        except json.JSONDecodeError as e:
+            print(f"❌ SearchIntelligenceService JSON parse error: {e}")
+            return self._demo_data(brand_name)
         except Exception as e:
-            print(f"Search intelligence error: {e}")
+            print(f"❌ SearchIntelligenceService error: {e}")
             return self._demo_data(brand_name)
 
     def _demo_data(self, brand_name: str = "Brand"):
@@ -99,3 +110,6 @@ Return ONLY valid JSON:
             "executive_summary": f"{brand_name} has moderate search visibility (58/100) but poor SGE readiness (42/100). With Google's AI-powered search results threatening 15-25% traffic loss, immediate action is needed on structured data implementation and authoritative content creation. The brand is missing several high-volume keyword opportunities that competitors are capturing.",
             "is_demo": True
         }
+
+
+search_intelligence_service = SearchIntelligenceService()

@@ -1245,6 +1245,91 @@ async def ad_intelligence_endpoint(request: dict):
         return _DEMO_DATA
 
 
+@app.post("/api/content-pipeline/social")
+async def content_pipeline_social(request: dict):
+    """Generate social conversation intelligence for the content pipeline."""
+    from services.social_scraper import SocialScraperService
+    service = SocialScraperService()
+    try:
+        result = await service.scrape_social(
+            keywords=request.get("keywords", []),
+            brand_name=request.get("brand_name", "Brand"),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️ content-pipeline/social error: {e}")
+        return service._demo_data()
+
+
+@app.post("/api/content-pipeline/blog")
+async def content_pipeline_blog(request: dict):
+    """Generate a blog post from social intelligence."""
+    from services.blog_engine import BlogEngineService
+    service = BlogEngineService()
+    try:
+        result = await service.generate_blog(
+            topic=request.get("topic", "Brand Content"),
+            brand_name=request.get("brand_name", "Brand"),
+            keywords=request.get("keywords", []),
+            social_data=request.get("social_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️ content-pipeline/blog error: {e}")
+        return service._demo_data()
+
+
+@app.post("/api/content-pipeline/export")
+async def content_pipeline_export(request: dict):
+    """Export blog content for WordPress, Webflow, or generic JSON."""
+    from services.cms_exporter import CMSExporterService
+    service = CMSExporterService()
+    try:
+        result = service.export(
+            content=request.get("content", {}),
+            format=request.get("format", "json"),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️ content-pipeline/export error: {e}")
+        return {"error": str(e), "download_ready": False}
+
+
+@app.post("/api/search-intelligence")
+async def search_intelligence_endpoint(request: dict):
+    """Analyze search landscape and SGE readiness for a brand."""
+    from services.search_intelligence import SearchIntelligenceService
+    service = SearchIntelligenceService()
+    try:
+        result = await service.analyze_search(
+            brand_name=request.get("brand_name", "Brand"),
+            category=request.get("category", "Technology"),
+            website_data=request.get("website_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️ search-intelligence error: {e}")
+        return service._demo_data(request.get("brand_name", "Brand"))
+
+
+@app.post("/api/schema-generator")
+async def schema_generator_endpoint(request: dict):
+    """Generate JSON-LD schema markup to boost AI visibility."""
+    from services.schema_generator import SchemaGeneratorService
+    service = SchemaGeneratorService()
+    try:
+        result = await service.generate_schemas(
+            brand_name=request.get("brand_name", "Brand"),
+            domain=request.get("domain", ""),
+            website_data=request.get("website_data", {}),
+            analysis_data=request.get("analysis_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️ schema-generator error: {e}")
+        return service._demo_data(request.get("brand_name", "Brand"))
+
+
 @app.get("/")
 async def root():
     return {"message": "Radius GEO Analytics API", "version": "1.0.0"}

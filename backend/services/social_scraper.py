@@ -5,23 +5,24 @@ Generates social conversation intelligence from keywords
 import os
 import json
 from typing import Dict, List, Any
-from openai import OpenAI
 
 
 class SocialScraperService:
     """Generates social intelligence from brand keywords via GPT"""
 
-    def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if os.getenv("OPENAI_API_KEY") else None
-
     async def scrape_social(self, keywords: list, brand_name: str) -> dict:
         """ONE GPT call to generate social conversation intelligence"""
-        if not self.client:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("⚠️ OPENAI_API_KEY not set — SocialScraperService returning demo data")
             return self._demo_data()
+
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
 
         try:
             kw_text = ", ".join(keywords[:10]) if keywords else brand_name
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{
                     "role": "user",
@@ -32,7 +33,7 @@ Keywords: {kw_text}
 
 Generate social conversation intelligence — what Indian consumers are saying about this brand/category on Reddit (r/IndianSkincareAddicts, r/india), Twitter/X, and Instagram.
 
-Return ONLY valid JSON:
+You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks.
 {{
   "conversations": [
     {{"platform": "Reddit", "subreddit": "string", "title": "string", "sentiment": "positive/negative/neutral", "engagement": "high/medium/low", "key_insight": "one sentence", "content_opportunity": "one sentence about content to create"}},
@@ -48,11 +49,21 @@ Return ONLY valid JSON:
                 max_tokens=1200,
                 temperature=0.7
             )
-            result = json.loads(response.choices[0].message.content)
+            raw = response.choices[0].message.content.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+            raw = raw.strip()
+            result = json.loads(raw)
             result["is_demo"] = False
+            print(f"✅ SocialScraperService returned real data for {brand_name}")
             return result
+        except json.JSONDecodeError as e:
+            print(f"❌ SocialScraperService JSON parse error: {e}")
+            return self._demo_data()
         except Exception as e:
-            print(f"Social scraper error: {e}")
+            print(f"❌ SocialScraperService error: {e}")
             return self._demo_data()
 
     def _demo_data(self):
@@ -90,3 +101,6 @@ Return ONLY valid JSON:
             ],
             "is_demo": True
         }
+
+
+social_scraper_service = SocialScraperService()
