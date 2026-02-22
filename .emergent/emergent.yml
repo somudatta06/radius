@@ -1,4 +1,17 @@
 {
-  "job_id": "b3ac55fc-1616-4224-9896-db89d50f2441",
-  "created_at": "2025-12-13T17:31:43.937836+00:00Z"
+  "name": "radius-geo-platform",
+  "description": "AI Brand Intelligence Platform - FastAPI Python backend + React TypeScript frontend + MongoDB",
+  "stack": {
+    "backend": "python",
+    "frontend": "react",
+    "database": "mongodb"
+  },
+  "setup": {
+    "backend": "cd backend && pip install -r requirements.txt && python server.py",
+    "frontend": "cd frontend && npm install && npm run dev"
+  },
+  "ports": {
+    "backend": 8001,
+    "frontend": 3000
+  }
 }

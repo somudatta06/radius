@@ -24,11 +24,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
         "http://localhost:5173",
-        "https://radius-analytics.preview.emergentagent.com",
-        "https://knowledge-hub-303.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
