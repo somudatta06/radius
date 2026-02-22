@@ -409,12 +409,13 @@
     animation-delay: 800ms;
   }
 
-  /* Scrollbar hiding utility */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  /* Hide scrollbars while keeping scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

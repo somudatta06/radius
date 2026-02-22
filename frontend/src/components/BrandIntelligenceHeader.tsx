@@ -1,93 +1,86 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Target, TrendingUp, MessageSquare, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Bot, BarChart2, Megaphone, Users, FileText, ArrowRight } from "lucide-react";
 
 interface BrandIntelligenceHeaderProps {
-    brandName?: string;
-    overallScore?: number;
-    pillars?: {
-        visibility: number;
-        perception: number;
-        content: number;
-        advertising: number;
-        search: number;
-    };
+  brandName: string;
+  domain: string;
+  overallScore: number;
 }
 
-function getScoreColor(score: number) {
-    if (score >= 75) return "text-green-600";
-    if (score >= 50) return "text-yellow-600";
-    return "text-red-600";
+function getLetterGrade(score: number): string {
+  if (score >= 90) return "A+";
+  if (score >= 80) return "A";
+  if (score >= 70) return "B";
+  if (score >= 60) return "C";
+  if (score >= 50) return "D";
+  return "F";
 }
 
-function getScoreBg(score: number) {
-    if (score >= 75) return "bg-green-500";
-    if (score >= 50) return "bg-yellow-500";
-    return "bg-red-500";
+function getGradeColor(score: number): string {
+  if (score >= 80) return "bg-green-100 text-green-800 border-green-200";
+  if (score >= 60) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  return "bg-red-100 text-red-800 border-red-200";
 }
 
-const pillarConfig = [
-    { key: "visibility", label: "AI Visibility", icon: Brain, description: "How AI platforms describe you" },
-    { key: "perception", label: "Perception Gap", icon: Target, description: "AI vs consumer alignment" },
-    { key: "advertising", label: "Ad Intelligence", icon: TrendingUp, description: "Advertising positioning" },
-    { key: "content", label: "Content Pipeline", icon: MessageSquare, description: "Content opportunity score" },
-    { key: "search", label: "Search & SGE", icon: Search, description: "Search visibility + SGE readiness" },
-] as const;
+function getScoreColor(score: number): string {
+  if (score >= 80) return "text-green-600";
+  if (score >= 60) return "text-yellow-600";
+  return "text-red-600";
+}
 
-export function BrandIntelligenceHeader({ brandName, overallScore = 65, pillars }: BrandIntelligenceHeaderProps) {
-    const defaultPillars = {
-        visibility: 68,
-        perception: 55,
-        content: 62,
-        advertising: 58,
-        search: 50,
-    };
-    const p = pillars || defaultPillars;
+const pillars = [
+  { label: "AI Score", icon: Bot, hasData: true },
+  { label: "Gap Analysis", icon: BarChart2, hasData: true },
+  { label: "Ad Intelligence", icon: Megaphone, hasData: true },
+  { label: "Competitors", icon: Users, hasData: true },
+  { label: "Content", icon: FileText, hasData: true },
+];
 
-    return (
-        <Card className="mb-6 overflow-hidden">
-            <CardContent className="pt-6 pb-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                    {/* Brand + Overall Score */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                        <div className="w-16 h-16 rounded-2xl bg-foreground text-background flex items-center justify-center">
-                            <Brain className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold">{brandName || "Brand"} Intelligence</h1>
-                            <div className="flex items-baseline gap-2 mt-1">
-                                <span className={`text-3xl font-bold ${getScoreColor(overallScore)}`}>{overallScore}</span>
-                                <span className="text-sm text-muted-foreground">/100 overall</span>
-                            </div>
-                        </div>
-                    </div>
+export function BrandIntelligenceHeader({ brandName, domain, overallScore }: BrandIntelligenceHeaderProps) {
+  const grade = getLetterGrade(overallScore);
+  const gradeColor = getGradeColor(overallScore);
+  const scoreColor = getScoreColor(overallScore);
 
-                    {/* Divider */}
-                    <div className="hidden md:block w-px h-16 bg-border" />
+  return (
+    <Card className="rounded-2xl p-8 border border-border bg-card mb-6">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          {/* Brand identity */}
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold text-foreground">{brandName}</h2>
+            <p className="text-muted-foreground mt-1">{domain}</p>
 
-                    {/* Pillars */}
-                    <div className="flex-1 grid grid-cols-5 gap-3 w-full">
-                        {pillarConfig.map((pillar) => {
-                            const Icon = pillar.icon;
-                            const score = p[pillar.key];
-                            return (
-                                <div key={pillar.key} className="text-center">
-                                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                                        <span className="text-xs text-muted-foreground truncate">{pillar.label}</span>
-                                    </div>
-                                    <span className={`text-lg font-bold ${getScoreColor(score)}`}>{score}</span>
-                                    <div className="h-1.5 rounded-full bg-muted mt-1">
-                                        <div
-                                            className={`h-1.5 rounded-full ${getScoreBg(score)} transition-all duration-500`}
-                                            style={{ width: `${score}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
+            {/* Pillar indicators */}
+            <div className="flex flex-wrap gap-3 mt-5">
+              {pillars.map((pillar) => {
+                const Icon = pillar.icon;
+                return (
+                  <div
+                    key={pillar.label}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                      pillar.hasData
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{pillar.label}</span>
+                    {!pillar.hasData && <ArrowRight className="w-3 h-3 opacity-60" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Score display */}
+          <div className="flex flex-col items-center gap-2 min-w-[120px]">
+            <span className={`text-5xl font-bold ${scoreColor}`}>{overallScore}</span>
+            <span className="text-xs text-muted-foreground">/ 100</span>
+            <Badge className={`text-sm font-bold border ${gradeColor}`}>{grade}</Badge>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

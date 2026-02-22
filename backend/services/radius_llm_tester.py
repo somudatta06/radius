@@ -1,532 +1,408 @@
 """
 RADIUS PHASE 5: Multi-LLM Visibility Testing
-Tests visibility across ChatGPT, Claude, Perplexity, and Gemini
-Refactored to work with OpenAI only — simulates all 4 platforms via one GPT call
+Tests visibility across ChatGPT, Claude, Perplexity, and Gemini.
+
+NOTE: Only OpenAI (gpt-4o-mini) is used.
+Claude, Gemini, and Perplexity results are SIMULATED via a single GPT call
+that estimates how each platform would describe the brand.
 """
 import os
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 from openai import OpenAI
-import requests
 
-# Optional imports — app works without these
-try:
-    import anthropic
-except ImportError:
-    anthropic = None
 
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
+# Hardcoded demo scores returned when OpenAI key is missing
+_DEMO_PLATFORM_SCORES = {
+    "chatgpt": {"score": 62, "summary": "A technology company with a growing online presence and relevant product offerings."},
+    "claude":  {"score": 58, "summary": "A brand that appears in relevant search contexts with moderate visibility across AI responses."},
+    "gemini":  {"score": 65, "summary": "A recognised player in its category, mentioned in industry comparisons and product reviews."},
+    "perplexity": {"score": 60, "summary": "Appears in targeted search results with adequate brand representation in AI-generated answers."},
+}
+
 
 class RadiusLLMTester:
     """
     PHASE 5: Multi-LLM Visibility Testing
-    
-    Tests visibility across:
-    - ChatGPT (OpenAI)
-    - Claude (Anthropic)
-    - Gemini (Google)
-    - Perplexity (API)
-    
-    Each LLM is treated as an independent black box.
-    We OBSERVE, we do NOT correct.
+
+    Uses gpt-4o-mini to:
+    1. Actually query ChatGPT about the brand (real responses).
+    2. Simulate how Claude, Gemini, and Perplexity would describe the brand
+       (one GPT call that returns estimated scores + summaries for all 4 platforms).
+
+    If OPENAI_API_KEY is not set, returns hardcoded demo scores so the app
+    never crashes.
     """
-    
+
     def __init__(self):
-        # Initialize API clients (will be None if keys not set)
         self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        self.gemini_key = os.getenv("GEMINI_API_KEY")
-        self.perplexity_key = os.getenv("PERPLEXITY_API_KEY")
-        
         self.openai_client = None
-        self.anthropic_client = None
-        self.gemini_model = None
-        
-        self._init_clients()
-    
-    def _init_clients(self):
-        """Initialize LLM clients"""
+        self._init_client()
+
+    def _init_client(self):
+        """Initialise OpenAI client if key is available."""
         if self.openai_key:
             try:
                 self.openai_client = OpenAI(api_key=self.openai_key)
             except Exception as e:
                 print(f"⚠️ OpenAI client init error: {e}")
-        
-        if self.anthropic_key and anthropic:
-            try:
-                import httpx
-                self.anthropic_client = anthropic.Anthropic(
-                    api_key=self.anthropic_key,
-                    http_client=httpx.Client()
-                )
-            except Exception as e:
-                print(f"⚠️ Anthropic client init error: {e}")
-                self.anthropic_client = None
-        
-        if self.gemini_key and genai:
-            try:
-                genai.configure(api_key=self.gemini_key)
-                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-            except Exception as e:
-                print(f"⚠️ Gemini client init error: {e}")
-    
+                self.openai_client = None
+
+    def _refresh_client(self):
+        """Re-read env var and re-initialise (called before each analysis run)."""
+        self.openai_key = os.getenv("OPENAI_API_KEY")
+        self._init_client()
+
+    # ------------------------------------------------------------------
+    # Public entry point
+    # ------------------------------------------------------------------
+
     def test_all_llms(self, questions: List[Dict], knowledge_base: Dict) -> Dict[str, Any]:
         """
-        Test visibility across all available LLMs
-        
-        If only OpenAI key is available, uses ONE gpt-4o-mini call to simulate
-        all 4 platform responses for cost efficiency.
+        Test visibility across all LLMs.
+
+        Returns comprehensive test results compatible with the existing schema.
         """
         print("🔬 PHASE 5: Starting multi-LLM visibility testing...")
-        
-        # Refresh clients in case keys were loaded after init
-        self._refresh_clients()
-        
-        kb = knowledge_base.get('knowledge_base', {})
-        company_name = kb.get('company_overview', {}).get('name', 'Unknown')
-        
-        results = {
-            'company_name': company_name,
-            'test_timestamp': datetime.now(timezone.utc).isoformat(),
-            'platforms': {},
-            'summary': {},
-            'metadata': {
-                'questions_tested': len(questions),
-                'platforms_available': [],
-                'cache_used': False,
-            }
+
+        self._refresh_client()
+
+        kb = knowledge_base.get("knowledge_base", {})
+        company_name = kb.get("company_overview", {}).get("name", "Unknown")
+
+        results: Dict[str, Any] = {
+            "company_name": company_name,
+            "test_timestamp": datetime.now(timezone.utc).isoformat(),
+            "platforms": {},
+            "summary": {},
+            "metadata": {
+                "questions_tested": len(questions),
+                "platforms_available": [],
+                "cache_used": False,
+                "simulation_mode": True,
+            },
         }
-        
-        # Check if we only have OpenAI — use simulated multi-platform
-        only_openai = self.openai_client and not self.anthropic_client and not self.gemini_model and not self.perplexity_key
-        
-        if only_openai:
-            # Simulate all 4 platforms with ONE OpenAI call
-            simulated = self._simulate_all_platforms(questions, company_name, kb)
-            results['platforms'] = simulated
-            results['metadata']['platforms_available'] = ['chatgpt', 'claude', 'gemini', 'perplexity']
-            results['metadata']['simulated'] = True
+
+        if not self.openai_client:
+            # No API key — return demo data for all 4 platforms
+            print("⚠️  No OPENAI_API_KEY — returning demo scores for all platforms")
+            for platform_key, platform_label, model_label in [
+                ("chatgpt",   "ChatGPT",   "demo"),
+                ("claude",    "Claude",    "demo"),
+                ("gemini",    "Gemini",    "demo"),
+                ("perplexity","Perplexity","demo"),
+            ]:
+                results["platforms"][platform_key] = self._demo_result(
+                    platform_label, model_label, company_name, questions
+                )
+                results["metadata"]["platforms_available"].append(platform_key)
         else:
-            # Test each platform individually
-            if self.openai_client:
-                results['platforms']['chatgpt'] = self._test_openai(questions, company_name, kb)
-                results['metadata']['platforms_available'].append('chatgpt')
-            else:
-                results['platforms']['chatgpt'] = self._create_unavailable_result('ChatGPT', 'OPENAI_API_KEY not set')
-            
-            if self.anthropic_client:
-                results['platforms']['claude'] = self._test_anthropic(questions, company_name, kb)
-                results['metadata']['platforms_available'].append('claude')
-            else:
-                results['platforms']['claude'] = self._create_unavailable_result('Claude', 'ANTHROPIC_API_KEY not set')
-            
-            if self.gemini_model:
-                results['platforms']['gemini'] = self._test_gemini(questions, company_name, kb)
-                results['metadata']['platforms_available'].append('gemini')
-            else:
-                results['platforms']['gemini'] = self._create_unavailable_result('Gemini', 'GEMINI_API_KEY not set')
-            
-            if self.perplexity_key:
-                results['platforms']['perplexity'] = self._test_perplexity(questions, company_name, kb)
-                results['metadata']['platforms_available'].append('perplexity')
-            else:
-                results['platforms']['perplexity'] = self._create_unavailable_result('Perplexity', 'PERPLEXITY_API_KEY not set')
-        
+            # Step 1: Real ChatGPT test
+            results["platforms"]["chatgpt"] = self._test_openai(questions, company_name, kb)
+            results["metadata"]["platforms_available"].append("chatgpt")
+
+            # Step 2: Simulate Claude / Gemini / Perplexity with one GPT call
+            simulated = self._simulate_other_platforms(company_name, kb, questions)
+            for platform_key in ("claude", "gemini", "perplexity"):
+                results["platforms"][platform_key] = simulated.get(
+                    platform_key,
+                    self._demo_result(platform_key.capitalize(), "simulated", company_name, questions),
+                )
+                results["metadata"]["platforms_available"].append(platform_key)
+
         # Calculate summary
-        results['summary'] = self._calculate_summary(results['platforms'], company_name)
-        
-        print(f"🔬 PHASE 5 Complete: Tested on {len(results['metadata']['platforms_available'])} platforms")
-        
+        results["summary"] = self._calculate_summary(results["platforms"], company_name)
+
+        tested_count = len(results["metadata"]["platforms_available"])
+        print(f"🔬 PHASE 5 Complete: Results for {tested_count} platforms")
+
         return results
-    
-    def _simulate_all_platforms(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Simulate all 4 platform responses using ONE gpt-4o-mini call"""
-        print("  Simulating all platforms via OpenAI...")
-        
-        # Use first 3 questions for context
-        q_texts = [q['text'] for q in questions[:3]]
-        q_summary = "\n".join(q_texts)
-        
-        products_info = ", ".join([p.get('name', '') for p in kb.get('products_and_services', [])[:5]])
-        company_desc = kb.get('company_overview', {}).get('description', company_name)
-        
-        try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"""Simulate how ChatGPT, Claude, Gemini, and Perplexity would each respond to queries about '{company_name}'.
 
-Company: {company_desc}
-Products: {products_info}
+    # ------------------------------------------------------------------
+    # Real ChatGPT test
+    # ------------------------------------------------------------------
 
-Sample queries:
-{q_summary}
-
-For each platform, estimate a visibility score 0-100 and provide a one-sentence summary of how that platform would describe this brand.
-
-Return ONLY valid JSON:
-{{{{
-  "chatgpt": {{"score": number, "summary": "string", "mention_rate": 0.0-1.0}},
-  "claude": {{"score": number, "summary": "string", "mention_rate": 0.0-1.0}},
-  "gemini": {{"score": number, "summary": "string", "mention_rate": 0.0-1.0}},
-  "perplexity": {{"score": number, "summary": "string", "mention_rate": 0.0-1.0}}
-}}}}"""
-                }],
-                max_tokens=600,
-                temperature=0.7
-            )
-            
-            sim_data = json.loads(response.choices[0].message.content)
-        except Exception as e:
-            print(f"  ⚠️ Simulation error: {e}")
-            sim_data = {
-                "chatgpt": {"score": 65, "summary": "Moderate visibility", "mention_rate": 0.4},
-                "claude": {"score": 60, "summary": "Limited visibility", "mention_rate": 0.3},
-                "gemini": {"score": 62, "summary": "Some visibility", "mention_rate": 0.35},
-                "perplexity": {"score": 68, "summary": "Good factual coverage", "mention_rate": 0.45}
-            }
-        
-        now = datetime.now(timezone.utc).isoformat()
-        platforms = {
-            'chatgpt': 'ChatGPT', 'claude': 'Claude',
-            'gemini': 'Gemini', 'perplexity': 'Perplexity'
-        }
-        
-        result = {}
-        for key, name in platforms.items():
-            p = sim_data.get(key, {})
-            mr = p.get('mention_rate', 0.3)
-            result[key] = {
-                'platform': name,
-                'model': 'gpt-4o-mini (simulated)',
-                'available': True,
-                'questions_tested': len(questions[:5]),
-                'mention_count': int(mr * len(questions[:5])),
-                'mention_rate': mr,
-                'simulated_score': p.get('score', 60),
-                'simulated_summary': p.get('summary', ''),
-                'results': [],
-                'tested_at': now
-            }
-        
-        return result
-    
-    def _refresh_clients(self):
-        """Refresh clients with latest env vars"""
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        self.gemini_key = os.getenv("GEMINI_API_KEY")
-        self.perplexity_key = os.getenv("PERPLEXITY_API_KEY")
-        self._init_clients()
-    
     def _test_openai(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Test visibility on ChatGPT"""
-        print("  Testing ChatGPT...")
-        
+        """Query ChatGPT with actual brand questions."""
+        print("  Testing ChatGPT (real)...")
+
         results = []
         total_mentions = 0
-        
-        for q in questions[:5]:  # Limit to 5 questions to save API costs
+
+        for q in questions[:5]:
             try:
                 response = self.openai_client.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[
-                        {"role": "user", "content": q['text']}
-                    ],
+                    messages=[{"role": "user", "content": q["text"]}],
                     temperature=0.7,
-                    max_tokens=1000
+                    max_tokens=1000,
                 )
-                
                 answer = response.choices[0].message.content
                 analysis = self._analyze_response(answer, company_name, kb)
-                
+
                 results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'response': answer[:1500],
-                    'analysis': analysis
+                    "question_id": q["id"],
+                    "question": q["text"],
+                    "response": answer[:1500],
+                    "analysis": analysis,
                 })
-                
-                if analysis['mentioned']:
+
+                if analysis["mentioned"]:
                     total_mentions += 1
-                    
+
             except Exception as e:
                 results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'error': str(e)
+                    "question_id": q["id"],
+                    "question": q["text"],
+                    "error": str(e),
                 })
-        
+
         return {
-            'platform': 'ChatGPT',
-            'model': 'gpt-4o-mini',
-            'available': True,
-            'questions_tested': len(results),
-            'mention_count': total_mentions,
-            'mention_rate': total_mentions / len(results) if results else 0,
-            'results': results,
-            'tested_at': datetime.now(timezone.utc).isoformat()
+            "platform": "ChatGPT",
+            "model": "gpt-4o-mini",
+            "available": True,
+            "simulated": False,
+            "questions_tested": len(results),
+            "mention_count": total_mentions,
+            "mention_rate": total_mentions / len(results) if results else 0,
+            "results": results,
+            "tested_at": datetime.now(timezone.utc).isoformat(),
         }
-    
-    def _test_anthropic(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Test visibility on Claude"""
-        print("  Testing Claude...")
-        
-        results = []
-        total_mentions = 0
-        
-        for q in questions[:5]:
-            try:
-                response = self.anthropic_client.messages.create(
-                    model="claude-3-haiku-20240307",
-                    max_tokens=1000,
-                    messages=[
-                        {"role": "user", "content": q['text']}
-                    ]
-                )
-                
-                answer = response.content[0].text
-                analysis = self._analyze_response(answer, company_name, kb)
-                
-                results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'response': answer[:1500],
-                    'analysis': analysis
-                })
-                
-                if analysis['mentioned']:
-                    total_mentions += 1
-                    
-            except Exception as e:
-                results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'error': str(e)
-                })
-        
-        return {
-            'platform': 'Claude',
-            'model': 'claude-3-haiku',
-            'available': True,
-            'questions_tested': len(results),
-            'mention_count': total_mentions,
-            'mention_rate': total_mentions / len(results) if results else 0,
-            'results': results,
-            'tested_at': datetime.now(timezone.utc).isoformat()
+
+    # ------------------------------------------------------------------
+    # Simulation: Claude / Gemini / Perplexity via one GPT call
+    # ------------------------------------------------------------------
+
+    def _simulate_other_platforms(
+        self, company_name: str, kb: Dict, questions: List[Dict]
+    ) -> Dict[str, Dict]:
+        """
+        Use GPT-4o-mini to estimate how Claude, Gemini, and Perplexity
+        would each describe and score the brand.
+
+        Returns a dict keyed by platform name.
+        """
+        print("  Simulating Claude / Gemini / Perplexity via GPT-4o-mini...")
+
+        # Build a short content summary from the knowledge base
+        overview = kb.get("company_overview", {})
+        products = kb.get("products_and_services", [])
+        content_summary = (
+            f"Company: {overview.get('name', company_name)}. "
+            f"Description: {overview.get('description', '')}. "
+            f"Products: {', '.join([p.get('name','') for p in products[:5]])}."
+        )
+
+        sample_questions = " | ".join([q["text"] for q in questions[:3]])
+
+        prompt = (
+            f"Simulate how ChatGPT, Claude, Gemini, and Perplexity would each respond "
+            f"to queries about {company_name}. "
+            f"Based on this website content: {content_summary}. "
+            f"Sample queries: {sample_questions}. "
+            f"For each platform, estimate a visibility score 0-100 and a one-sentence "
+            f"summary of how they would describe the brand. "
+            f"Return ONLY valid JSON in this exact shape, no markdown, no extra text: "
+            f'{{"chatgpt": {{"score": 0, "summary": ""}}, '
+            f'"claude": {{"score": 0, "summary": ""}}, '
+            f'"gemini": {{"score": 0, "summary": ""}}, '
+            f'"perplexity": {{"score": 0, "summary": ""}}}}'
+        )
+
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=400,
+            )
+            raw = response.choices[0].message.content.strip()
+            simulated_data: Dict = json.loads(raw)
+        except Exception as e:
+            print(f"⚠️  Simulation call failed: {e} — using demo scores")
+            simulated_data = _DEMO_PLATFORM_SCORES
+
+        now = datetime.now(timezone.utc).isoformat()
+        platform_map = {
+            "claude":     ("Claude",     "claude-simulated"),
+            "gemini":     ("Gemini",     "gemini-simulated"),
+            "perplexity": ("Perplexity", "perplexity-simulated"),
         }
-    
-    def _test_gemini(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Test visibility on Gemini"""
-        print("  Testing Gemini...")
-        
-        results = []
-        total_mentions = 0
-        
-        for q in questions[:5]:
-            try:
-                response = self.gemini_model.generate_content(q['text'])
-                answer = response.text
-                analysis = self._analyze_response(answer, company_name, kb)
-                
-                results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'response': answer[:1500],
-                    'analysis': analysis
-                })
-                
-                if analysis['mentioned']:
-                    total_mentions += 1
-                    
-            except Exception as e:
-                results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'error': str(e)
-                })
-        
-        return {
-            'platform': 'Gemini',
-            'model': 'gemini-2.0-flash',
-            'available': True,
-            'questions_tested': len(results),
-            'mention_count': total_mentions,
-            'mention_rate': total_mentions / len(results) if results else 0,
-            'results': results,
-            'tested_at': datetime.now(timezone.utc).isoformat()
-        }
-    
-    def _test_perplexity(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Test visibility on Perplexity"""
-        print("  Testing Perplexity...")
-        
-        results = []
-        total_mentions = 0
-        
-        headers = {
-            "Authorization": f"Bearer {self.perplexity_key}",
-            "Content-Type": "application/json"
-        }
-        
-        for q in questions[:5]:
-            try:
-                response = requests.post(
-                    "https://api.perplexity.ai/chat/completions",
-                    headers=headers,
-                    json={
-                        "model": "llama-3.1-sonar-small-128k-online",
-                        "messages": [{"role": "user", "content": q['text']}],
-                        "max_tokens": 1000
+
+        output: Dict[str, Dict] = {}
+        for key, (label, model) in platform_map.items():
+            sim = simulated_data.get(key, _DEMO_PLATFORM_SCORES[key])
+            score = int(sim.get("score", 60))
+            summary = sim.get("summary", "")
+            mention_rate = round(score / 100, 2)
+
+            # Build synthetic question results based on the simulated score
+            sim_results = []
+            for q in questions[:5]:
+                sim_results.append({
+                    "question_id": q["id"],
+                    "question": q["text"],
+                    "response": summary,
+                    "analysis": {
+                        "mentioned": score >= 50,
+                        "mention_position": 0 if score >= 50 else -1,
+                        "product_mentions": 0,
+                        "sentiment": "positive" if score >= 65 else "neutral" if score >= 45 else "negative",
+                        "competitors_mentioned": [],
+                        "hallucination_risk": "low",
+                        "response_length": len(summary),
+                        "contains_recommendation": score >= 70,
                     },
-                    timeout=30
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    answer = data['choices'][0]['message']['content']
-                    analysis = self._analyze_response(answer, company_name, kb)
-                    
-                    results.append({
-                        'question_id': q['id'],
-                        'question': q['text'],
-                        'response': answer[:1500],
-                        'analysis': analysis
-                    })
-                    
-                    if analysis['mentioned']:
-                        total_mentions += 1
-                else:
-                    results.append({
-                        'question_id': q['id'],
-                        'question': q['text'],
-                        'error': f"API error: {response.status_code}"
-                    })
-                    
-            except Exception as e:
-                results.append({
-                    'question_id': q['id'],
-                    'question': q['text'],
-                    'error': str(e)
                 })
-        
+
+            total_mentions = sum(1 for r in sim_results if r["analysis"]["mentioned"])
+
+            output[key] = {
+                "platform": label,
+                "model": model,
+                "available": True,
+                "simulated": True,
+                "questions_tested": len(sim_results),
+                "mention_count": total_mentions,
+                "mention_rate": mention_rate,
+                "results": sim_results,
+                "tested_at": now,
+            }
+
+        return output
+
+    # ------------------------------------------------------------------
+    # Demo data (no API key)
+    # ------------------------------------------------------------------
+
+    def _demo_result(
+        self, platform: str, model: str, company_name: str, questions: List[Dict]
+    ) -> Dict:
+        """Build a realistic-looking result when we have no API key at all."""
+        key = platform.lower()
+        demo = _DEMO_PLATFORM_SCORES.get(key, {"score": 60, "summary": "A recognised brand in its category."})
+        score = demo["score"]
+        summary = demo["summary"]
+        mention_rate = round(score / 100, 2)
+
+        demo_results = []
+        for q in questions[:5]:
+            demo_results.append({
+                "question_id": q["id"],
+                "question": q["text"],
+                "response": summary,
+                "analysis": {
+                    "mentioned": score >= 50,
+                    "mention_position": 0 if score >= 50 else -1,
+                    "product_mentions": 0,
+                    "sentiment": "positive" if score >= 65 else "neutral",
+                    "competitors_mentioned": [],
+                    "hallucination_risk": "low",
+                    "response_length": len(summary),
+                    "contains_recommendation": score >= 70,
+                },
+            })
+
+        total_mentions = sum(1 for r in demo_results if r["analysis"]["mentioned"])
+
         return {
-            'platform': 'Perplexity',
-            'model': 'llama-3.1-sonar-small-128k-online',
-            'available': True,
-            'questions_tested': len(results),
-            'mention_count': total_mentions,
-            'mention_rate': total_mentions / len(results) if results else 0,
-            'results': results,
-            'tested_at': datetime.now(timezone.utc).isoformat()
+            "platform": platform,
+            "model": model,
+            "available": True,
+            "simulated": True,
+            "demo_mode": True,
+            "questions_tested": len(demo_results),
+            "mention_count": total_mentions,
+            "mention_rate": mention_rate,
+            "results": demo_results,
+            "tested_at": datetime.now(timezone.utc).isoformat(),
         }
-    
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
     def _analyze_response(self, response: str, company_name: str, kb: Dict) -> Dict:
-        """Analyze LLM response for visibility metrics"""
+        """Analyse LLM response for visibility metrics."""
         response_lower = response.lower()
         company_lower = company_name.lower()
-        
-        # Check if company mentioned
+
         mentioned = company_lower in response_lower
-        
-        # Check for product mentions
-        products = kb.get('products_and_services', [])
-        product_mentions = 0
-        for p in products:
-            if p.get('name', '').lower() in response_lower:
-                product_mentions += 1
-        
-        # Sentiment analysis (simple keyword-based)
-        positive_words = ['best', 'excellent', 'great', 'leading', 'top', 'recommended', 'popular', 'trusted']
-        negative_words = ['avoid', 'issue', 'problem', 'concern', 'limited', 'expensive', 'difficult']
-        
+
+        products = kb.get("products_and_services", [])
+        product_mentions = sum(
+            1 for p in products if p.get("name", "").lower() in response_lower
+        )
+
+        positive_words = ["best", "excellent", "great", "leading", "top", "recommended", "popular", "trusted"]
+        negative_words = ["avoid", "issue", "problem", "concern", "limited", "expensive", "difficult"]
+
         positive_count = sum(1 for w in positive_words if w in response_lower)
         negative_count = sum(1 for w in negative_words if w in response_lower)
-        
+
         if positive_count > negative_count:
-            sentiment = 'positive'
+            sentiment = "positive"
         elif negative_count > positive_count:
-            sentiment = 'negative'
+            sentiment = "negative"
         else:
-            sentiment = 'neutral'
-        
-        # Check for competitor dominance
-        competitors_mentioned = []
-        # This would be enhanced with actual competitor data
-        
-        # Check for potential hallucinations
-        hallucination_risk = 'low'
-        if mentioned and 'founded' in response_lower and 'not stated' not in str(kb.get('company_overview', {}).get('founded', '')).lower():
-            hallucination_risk = 'medium'
-        
+            sentiment = "neutral"
+
+        hallucination_risk = "low"
+        if mentioned and "founded" in response_lower:
+            hallucination_risk = "medium"
+
         return {
-            'mentioned': mentioned,
-            'mention_position': response_lower.find(company_lower) if mentioned else -1,
-            'product_mentions': product_mentions,
-            'sentiment': sentiment,
-            'competitors_mentioned': competitors_mentioned,
-            'hallucination_risk': hallucination_risk,
-            'response_length': len(response),
-            'contains_recommendation': any(w in response_lower for w in ['recommend', 'suggest', 'consider', 'try'])
+            "mentioned": mentioned,
+            "mention_position": response_lower.find(company_lower) if mentioned else -1,
+            "product_mentions": product_mentions,
+            "sentiment": sentiment,
+            "competitors_mentioned": [],
+            "hallucination_risk": hallucination_risk,
+            "response_length": len(response),
+            "contains_recommendation": any(
+                w in response_lower for w in ["recommend", "suggest", "consider", "try"]
+            ),
         }
-    
+
     def _calculate_summary(self, platforms: Dict, company_name: str) -> Dict:
-        """Calculate overall visibility summary"""
+        """Calculate overall visibility summary across all platforms."""
         total_mentions = 0
         total_questions = 0
-        platform_scores = {}
-        
+        platform_scores: Dict[str, Dict] = {}
+
         for platform, data in platforms.items():
-            if data.get('available'):
-                total_mentions += data.get('mention_count', 0)
-                total_questions += data.get('questions_tested', 0)
+            if data.get("available"):
+                total_mentions += data.get("mention_count", 0)
+                total_questions += data.get("questions_tested", 0)
                 platform_scores[platform] = {
-                    'mention_rate': data.get('mention_rate', 0),
-                    'questions_tested': data.get('questions_tested', 0)
+                    "mention_rate": data.get("mention_rate", 0),
+                    "questions_tested": data.get("questions_tested", 0),
                 }
-        
+
         overall_mention_rate = total_mentions / total_questions if total_questions > 0 else 0
-        
+
         return {
-            'company_name': company_name,
-            'overall_mention_rate': overall_mention_rate,
-            'total_mentions': total_mentions,
-            'total_questions': total_questions,
-            'platform_scores': platform_scores,
-            'visibility_grade': self._calculate_grade(overall_mention_rate),
-            'platforms_tested': len([p for p in platforms.values() if p.get('available')])
+            "company_name": company_name,
+            "overall_mention_rate": overall_mention_rate,
+            "total_mentions": total_mentions,
+            "total_questions": total_questions,
+            "platform_scores": platform_scores,
+            "visibility_grade": self._calculate_grade(overall_mention_rate),
+            "platforms_tested": len([p for p in platforms.values() if p.get("available")]),
         }
-    
+
     def _calculate_grade(self, mention_rate: float) -> str:
-        """Calculate visibility grade based on mention rate"""
         if mention_rate >= 0.8:
-            return 'A'
+            return "A"
         elif mention_rate >= 0.6:
-            return 'B'
+            return "B"
         elif mention_rate >= 0.4:
-            return 'C'
+            return "C"
         elif mention_rate >= 0.2:
-            return 'D'
+            return "D"
         else:
-            return 'F'
-    
-    def _create_unavailable_result(self, platform: str, reason: str) -> Dict:
-        """Create result for unavailable platform"""
-        return {
-            'platform': platform,
-            'available': False,
-            'reason': reason,
-            'questions_tested': 0,
-            'mention_count': 0,
-            'mention_rate': 0,
-            'results': [],
-            'tested_at': datetime.now(timezone.utc).isoformat()
-        }
+            return "F"
 
 
 # Singleton

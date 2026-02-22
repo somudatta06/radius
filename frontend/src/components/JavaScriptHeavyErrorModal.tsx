@@ -90,21 +90,21 @@ export function JavaScriptHeavyErrorModal({ isOpen, onClose, url, errorDetails }
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Static Content</div>
                   <div className={`text-sm font-semibold ${
-                    technicalDetails.contentLength < 200 ? 'text-red-600' : 
-                    technicalDetails.contentLength < 500 ? 'text-yellow-600' : 
+                    (technicalDetails.contentLength ?? 0) < 200 ? 'text-red-600' :
+                    (technicalDetails.contentLength ?? 0) < 500 ? 'text-yellow-600' :
                     'text-green-600'
                   }`}>
-                    {technicalDetails.contentLength} characters
+                    {technicalDetails.contentLength ?? 0} characters
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Heading Tags</div>
                   <div className={`text-sm font-semibold ${
-                    technicalDetails.headingCount === 0 ? 'text-red-600' : 
-                    technicalDetails.headingCount < 3 ? 'text-yellow-600' : 
+                    (technicalDetails.headingCount ?? 0) === 0 ? 'text-red-600' :
+                    (technicalDetails.headingCount ?? 0) < 3 ? 'text-yellow-600' :
                     'text-green-600'
                   }`}>
-                    {technicalDetails.headingCount} found
+                    {technicalDetails.headingCount ?? 0} found
                   </div>
                 </div>
                 <div>
@@ -118,11 +118,11 @@ export function JavaScriptHeavyErrorModal({ isOpen, onClose, url, errorDetails }
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Est. JS Coverage</div>
                   <div className={`text-sm font-semibold ${
-                    technicalDetails.estimatedJSCoverage > 80 ? 'text-red-600' : 
-                    technicalDetails.estimatedJSCoverage > 60 ? 'text-yellow-600' : 
+                    (technicalDetails.estimatedJSCoverage ?? 0) > 80 ? 'text-red-600' :
+                    (technicalDetails.estimatedJSCoverage ?? 0) > 60 ? 'text-yellow-600' :
                     'text-green-600'
                   }`}>
-                    ~{Math.round(technicalDetails.estimatedJSCoverage)}%
+                    ~{Math.round(technicalDetails.estimatedJSCoverage ?? 0)}%
                   </div>
                 </div>
               </div>

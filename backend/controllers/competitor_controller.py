@@ -1,10 +1,14 @@
 """
 Competitor Controller
-Handles competitor discovery and analysis requests
+Handles competitor discovery and analysis requests.
+
+NOTE: Tracxn API is broken (DNS error on wrong endpoint).
+This controller uses tracxn_mock.py directly as the data source.
+tracxn.py is preserved but not imported here.
 """
-from typing import Optional
+from typing import Optional, List, Dict
 from fastapi import HTTPException, Query
-from services.tracxn import tracxn_service
+from services.tracxn_mock import get_mock_competitors
 from services.openai_analysis import openai_analysis_service
 import logging
 
@@ -37,13 +41,10 @@ async def discover_competitors(
         }
     """
     try:
-        # Step 1: Fetch competitors from Tracxn
-        if category:
-            logger.info(f"Discovering competitors by category: {category}")
-            competitors = tracxn_service.discover_by_category(category, limit)
-        else:
-            logger.info(f"Searching competitors with query: {query}")
-            competitors = tracxn_service.search_competitors(query, limit)
+        # Step 1: Fetch competitors from mock (Tracxn API is not available)
+        search_term = category if category else query
+        logger.info(f"Fetching mock competitors for: {search_term}")
+        competitors: List[Dict] = get_mock_competitors(search_term, limit)
         
         # Step 2: Validate results
         if not competitors:

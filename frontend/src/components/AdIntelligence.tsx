@@ -1,303 +1,253 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, TrendingUp, DollarSign, Target, Zap, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Megaphone, Target, TrendingUp, AlertCircle } from "lucide-react";
 
-interface AdIntelligenceProps {
-    brandName?: string;
-    analysisId?: string;
-    category?: string;
-}
-
-interface KeywordItem {
-    keyword: string;
-    search_volume: string;
-    competition: string;
-    opportunity: string;
-}
-
-interface MessagingItem {
-    channel: string;
-    strategy: string;
-    estimated_cpc: string;
-    effectiveness: number;
+interface AdStrategy {
+  format: string;
+  messaging_type: string;
+  spend_bracket: string;
+  top_hooks: string[];
 }
 
 interface CompetitorStrategy {
-    competitor: string;
-    positioning: string;
-    ad_spend_estimate: string;
-    key_message: string;
+  name: string;
+  strategy: string;
+  strength: string;
+  weakness: string;
 }
 
-interface StrategicGap {
-    gap: string;
-    impact: string;
-    recommendation: string;
+interface MessagingBreakdown {
+  discount: number;
+  aspirational: number;
+  ugc: number;
+  comparison: number;
+  feature: number;
 }
 
-interface AdData {
-    spotlight_keywords: KeywordItem[];
-    messaging_breakdown: MessagingItem[];
-    competitor_strategies: CompetitorStrategy[];
-    strategic_gaps: StrategicGap[];
-    budget_recommendation: {
-        monthly_minimum: string;
-        optimal_split: Record<string, number>;
-        priority_channel: string;
-    };
-    executive_summary: string;
-    is_demo?: boolean;
+interface AdIntelligenceData {
+  keywords_extracted: string[];
+  ad_strategy: AdStrategy;
+  competitor_strategies: CompetitorStrategy[];
+  messaging_breakdown: MessagingBreakdown;
+  strategic_gaps: string[];
+  recommendations: string[];
 }
 
-const API_BASE = import.meta.env.REACT_APP_BACKEND_URL || "";
-
-function getVolumeBadge(volume: string) {
-    switch (volume) {
-        case "high":
-            return "bg-foreground text-background px-2.5 py-0.5 rounded-full text-xs font-medium";
-        case "medium":
-            return "border border-border text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium";
-        case "low":
-            return "bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full text-xs font-medium";
-        default:
-            return "bg-muted text-foreground px-2.5 py-0.5 rounded-full text-xs font-medium";
-    }
+interface AdIntelligenceProps {
+  brandName: string;
+  domain: string;
+  competitors?: Array<{ name: string; domain: string }>;
+  category?: string;
 }
 
-function getEffectivenessColor(score: number) {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-yellow-500";
-    return "bg-red-500";
-}
+export function AdIntelligence({
+  brandName,
+  domain,
+  competitors = [],
+  category = "Technology",
+}: AdIntelligenceProps) {
+  const { data, isLoading, error } = useQuery<AdIntelligenceData>({
+    queryKey: ["/api/ad-intelligence", brandName, domain],
+    queryFn: async () => {
+      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || "";
+      const res = await fetch(`${backendUrl}/api/ad-intelligence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_name: brandName,
+          category,
+          competitors,
+          website_data: { title: brandName, description: domain },
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch ad intelligence");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-export function AdIntelligence({ brandName, analysisId, category }: AdIntelligenceProps) {
-    const { data, isLoading, isError } = useQuery<AdData>({
-        queryKey: ["ad-intelligence", brandName, analysisId],
-        queryFn: async () => {
-            const res = await fetch(`${API_BASE}/api/ad-intelligence`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    brand_name: brandName || "",
-                    category: category || "",
-                    analysis_id: analysisId || "",
-                }),
-            });
-            if (!res.ok) throw new Error("Failed to fetch ad intelligence");
-            return res.json();
-        },
-        enabled: !!brandName,
-    });
-
-    if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <Skeleton className="h-32 w-full rounded-lg" />
-                <Skeleton className="h-48 w-full rounded-lg" />
-                <Skeleton className="h-32 w-full rounded-lg" />
-            </div>
-        );
-    }
-
-    const adData = data;
-
-    if (!adData) {
-        return (
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                <AlertTriangle className="w-4 h-4" />
-                Unable to load ad intelligence data
-            </div>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <div className="space-y-8">
-            {(adData.is_demo || isError) && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                    <AlertTriangle className="w-4 h-4" />
-                    Showing sample data — connect API for live analysis
-                </div>
-            )}
-
-            {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold">Ad Intelligence</h2>
-                <p className="text-muted-foreground">
-                    Keyword opportunities, channel strategy, and competitive positioning
-                </p>
-            </div>
-
-            {/* Executive Summary */}
-            <Card className="border-l-4 border-primary">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Zap className="w-5 h-5" />
-                        Executive Summary
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm leading-relaxed">{adData.executive_summary}</p>
-                </CardContent>
-            </Card>
-
-            {/* Keywords Spotlight */}
-            <div>
-                <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Keywords Spotlight
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    High-opportunity keywords for ad targeting and content optimization
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {adData.spotlight_keywords.map((kw, idx) => (
-                        <Card key={idx} className="hover-elevate">
-                            <CardContent className="pt-5">
-                                <p className="font-semibold text-sm mb-3 truncate" title={kw.keyword}>"{kw.keyword}"</p>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className={getVolumeBadge(kw.search_volume)}>
-                                        Vol: {kw.search_volume}
-                                    </span>
-                                    <span className={getVolumeBadge(kw.competition)}>
-                                        Comp: {kw.competition}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">{kw.opportunity}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-
-            {/* Channel Messaging Breakdown */}
-            <div>
-                <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Channel Strategy
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    Recommended messaging and estimated performance by channel
-                </p>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {adData.messaging_breakdown.map((msg, idx) => (
-                        <Card key={idx} className="hover-elevate">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base font-semibold">{msg.channel}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <p className="text-sm">{msg.strategy}</p>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <DollarSign className="w-3 h-3" />
-                                        CPC: {msg.estimated_cpc}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-20 rounded-full bg-muted">
-                                            <div
-                                                className={`h-2 rounded-full ${getEffectivenessColor(msg.effectiveness)} transition-all`}
-                                                style={{ width: `${msg.effectiveness}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs font-medium">{msg.effectiveness}%</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-
-            {/* Competitor Strategies */}
-            <div>
-                <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    Competitor Ad Strategies
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    How your competitors are positioning and spending
-                </p>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {adData.competitor_strategies.map((comp, idx) => (
-                        <Card key={idx} className="hover-elevate">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base font-semibold">{comp.competitor}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground">Positioning:</span> {comp.positioning}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground">Ad Spend:</span> {comp.ad_spend_estimate}
-                                </div>
-                                <div className="mt-2 p-2 bg-muted rounded-lg text-xs italic">
-                                    "{comp.key_message}"
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-
-            {/* Strategic Gaps + Budget */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Strategic Gaps */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base font-semibold">Strategic Gaps</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {adData.strategic_gaps.map((gap, idx) => (
-                            <div key={idx} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-medium">{gap.gap}</span>
-                                    <span className={getVolumeBadge(gap.impact)}>
-                                        {gap.impact.toUpperCase()}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">{gap.recommendation}</p>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                {/* Budget Recommendation */}
-                <Card className="border-l-4 border-chart-2">
-                    <CardHeader>
-                        <CardTitle className="text-base font-semibold flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            Budget Recommendation
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <span className="text-xs text-muted-foreground">Monthly Minimum</span>
-                            <p className="text-xl font-bold">{adData.budget_recommendation.monthly_minimum}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-muted-foreground">Priority Channel</span>
-                            <p className="text-sm font-medium">{adData.budget_recommendation.priority_channel}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-muted-foreground block mb-2">Optimal Budget Split</span>
-                            <div className="space-y-2">
-                                {Object.entries(adData.budget_recommendation.optimal_split).map(([channel, pct]) => (
-                                    <div key={channel} className="flex items-center gap-3">
-                                        <span className="text-xs w-16 capitalize">{channel}</span>
-                                        <div className="flex-1 h-2 rounded-full bg-muted">
-                                            <div
-                                                className="h-2 rounded-full bg-foreground transition-all"
-                                                style={{ width: `${pct}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs font-medium w-10 text-right">{pct}%</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+      <div className="space-y-6">
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)}
         </div>
+      </div>
     );
+  }
+
+  if (error || !data) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          Ad intelligence unavailable. Please try again.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const chartData = Object.entries(data.messaging_breakdown).map(([key, value]) => ({
+    name: key.charAt(0).toUpperCase() + key.slice(1),
+    value,
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* Keywords */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Brand Keywords
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {data.keywords_extracted.map((kw, i) => (
+              <Badge key={i} variant="secondary" className="text-sm px-3 py-1">
+                {kw}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ad Strategy + Messaging Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Ad Strategy */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Megaphone className="w-4 h-4" />
+              Recommended Ad Strategy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Format</p>
+                <p className="text-sm font-medium">{data.ad_strategy.format}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Spend Bracket</p>
+                <p className="text-sm font-medium">{data.ad_strategy.spend_bracket}</p>
+              </div>
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Messaging Type</p>
+              <p className="text-sm font-medium">{data.ad_strategy.messaging_type}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Top Hooks</p>
+              <div className="space-y-2">
+                {data.ad_strategy.top_hooks.map((hook, i) => (
+                  <div key={i} className="flex gap-2 p-3 border border-border rounded-lg">
+                    <span className="text-xs font-bold text-muted-foreground shrink-0">{i + 1}.</span>
+                    <p className="text-xs text-foreground leading-relaxed">"{hook}"</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Messaging Breakdown */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Messaging Mix
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                layout="vertical"
+                data={chartData}
+                margin={{ top: 0, right: 16, bottom: 0, left: 8 }}
+              >
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
+                <Tooltip formatter={(value) => [`${value}%`, "Share"]} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--chart-1))">
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill="hsl(var(--chart-1))" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Competitor Strategies */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Competitor Ad Strategies</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {data.competitor_strategies.map((comp, i) => (
+            <Card key={i} className="border border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">{comp.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">{comp.strategy}</p>
+                <div className="space-y-1">
+                  <div className="flex gap-2">
+                    <span className="text-xs text-green-600 font-medium shrink-0">+</span>
+                    <p className="text-xs text-muted-foreground">{comp.strength}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-xs text-red-500 font-medium shrink-0">−</span>
+                    <p className="text-xs text-muted-foreground">{comp.weakness}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Strategic Gaps */}
+      <Card className="border-l-4 border-l-red-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            Strategic Gaps
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {data.strategic_gaps.map((gap, i) => (
+              <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                <span className="text-red-500 shrink-0 mt-0.5">•</span>
+                {gap}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Recommendations */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Recommendations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="space-y-3">
+            {data.recommendations.map((rec, i) => (
+              <li key={i} className="flex gap-3 p-3 bg-muted rounded-lg">
+                <span className="text-sm font-bold text-primary shrink-0">{i + 1}.</span>
+                <p className="text-sm text-foreground leading-relaxed">{rec}</p>
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

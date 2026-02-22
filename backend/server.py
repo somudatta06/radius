@@ -4,11 +4,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, HttpUrl, EmailStr
 from typing import Optional, List, Dict, Any
 import os
+import json
 from datetime import datetime, timezone
-try:
-    import anthropic
-except ImportError:
-    anthropic = None
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -27,9 +24,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
         "http://localhost:5173",
         "https://radius-analytics.preview.emergentagent.com",
-        "https://knowledge-hub-303.preview.emergentagent.com"
+        "https://knowledge-hub-303.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
@@ -39,27 +38,30 @@ app.add_middleware(
 
 # Database connection
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-try:
-    client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000)
-    db = client.radius_db
-    _mongo_connected = True
-except Exception as e:
-    print(f"⚠️ MongoDB connection error: {e} — app will serve demo data")
-    client = None
-    db = None
-    _mongo_connected = False
+client = AsyncIOMotorClient(MONGO_URL)
+db = client.radius_db
 
-# Anthropic client (optional — app works without it)
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-anthropic_client = None
-if ANTHROPIC_API_KEY and anthropic:
-    try:
-        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    except Exception:
-        pass
+# OpenAI client (only supported LLM)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # In-memory session storage (for simplicity - use Redis in production)
 sessions: Dict[str, Dict] = {}
+
+# In-memory analysis cache — ensures retrieval works even when MongoDB is down
+# Keeps last 200 analyses (FIFO eviction)
+_analyses_cache: Dict[str, Dict] = {}
+_CACHE_MAX = 200
+
+def _cache_put(analysis_id: str, data: Dict) -> None:
+    """Insert analysis into in-memory cache with FIFO eviction."""
+    if len(_analyses_cache) >= _CACHE_MAX:
+        oldest = next(iter(_analyses_cache))
+        del _analyses_cache[oldest]
+    _analyses_cache[analysis_id] = data
+
+def _cache_get(analysis_id: str) -> Optional[Dict]:
+    """Retrieve analysis from in-memory cache."""
+    return _analyses_cache.get(analysis_id)
 
 # Auth Models
 class SignupRequest(BaseModel):
@@ -335,39 +337,134 @@ def scrape_website(url: str) -> Dict[str, Any]:
         print(f"⚠️  Scraping error for {url}: {str(e)}")
         return default_response
 
-def analyze_with_claude(prompt: str, system_prompt: str = "") -> str:
-    """Analyze using Claude API"""
-    if not anthropic_client:
-        return '{"error": "Anthropic API key not configured"}'
-    
+def analyze_with_openai(prompt: str, system_prompt: str = "") -> str:
+    """Analyze using OpenAI gpt-4o-mini (sole supported LLM)."""
+    if not OPENAI_API_KEY:
+        return '{"error": "OPENAI_API_KEY not configured"}'
     try:
-        message = anthropic_client.messages.create(
-            model="claude-sonnet-4-5",
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             max_tokens=2000,
             temperature=0.7,
-            system=system_prompt if system_prompt else "You are a helpful AI assistant.",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": system_prompt or "You are a helpful AI assistant."},
+                {"role": "user", "content": prompt},
+            ],
         )
-        return message.content[0].text
+        return response.choices[0].message.content
     except Exception as e:
-        print(f"Claude API error: {str(e)}")
+        print(f"OpenAI API error: {str(e)}")
         return f'{{"error": "{str(e)}"}}'
+
+def enhance_analysis_with_ai(website_info: Dict, brand_name: str, domain: str) -> Dict:
+    """
+    Use GPT-4o-mini to generate accurate industry detection, GEO scores,
+    platform-level visibility, and actionable recommendations.
+    Returns an empty dict on failure so callers can fall back gracefully.
+    """
+    if not OPENAI_API_KEY:
+        return {}
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+
+        content_summary = (
+            f"Brand: {brand_name}\n"
+            f"Domain: {domain}\n"
+            f"Page title: {website_info.get('title', '')}\n"
+            f"Meta description: {website_info.get('description', '')}\n"
+            f"Has FAQ: {website_info.get('hasFAQ', False)}\n"
+            f"Has Testimonials: {website_info.get('hasTestimonials', False)}\n"
+            f"Has Pricing: {website_info.get('hasPricing', False)}\n"
+            f"Has Blog: {website_info.get('hasBlog', False)}\n"
+            f"Has Comparisons: {website_info.get('hasComparisons', False)}\n"
+            f"Headings: {', '.join(website_info.get('headings', [])[:10])}\n"
+            f"Content preview: {website_info.get('textContent', '')[:1500]}"
+        )
+
+        prompt = f"""You are an expert in Generative Engine Optimization (GEO) — improving brand visibility in AI-generated answers (ChatGPT, Claude, Gemini, Perplexity).
+
+Analyze this brand's website content and return a JSON object with accurate AI visibility metrics.
+
+WEBSITE DATA:
+{content_summary}
+
+Return ONLY this JSON (no markdown, no extra text):
+{{
+  "industry": "<specific industry, e.g. SaaS, E-commerce, Fintech, Healthcare, EdTech, Marketing Tech>",
+  "aic": <0-10, Answerability & Intent Coverage — how well the site answers user questions AI would ask>,
+  "ces": <0-10, Credibility Evidence & Safety — trust signals: testimonials, certifications, case studies>,
+  "mts": <0-10, Machine-Readability & Technical — structured data, schema, clean HTML, fast load signals>,
+  "overall_score": <0-100, weighted GEO score: AIC*0.40 + CES*0.35 + MTS*0.25 * 10>,
+  "platform_scores": {{
+    "chatgpt": <0-100>,
+    "claude": <0-100>,
+    "gemini": <0-100>,
+    "perplexity": <0-100>
+  }},
+  "dimension_scores": [
+    {{"dimension": "Mention Rate", "score": <0-100>, "fullMark": 100}},
+    {{"dimension": "Context Quality", "score": <0-100>, "fullMark": 100}},
+    {{"dimension": "Sentiment", "score": <0-100>, "fullMark": 100}},
+    {{"dimension": "Prominence", "score": <0-100>, "fullMark": 100}},
+    {{"dimension": "Comparison", "score": <0-100>, "fullMark": 100}},
+    {{"dimension": "Recommendation", "score": <0-100>, "fullMark": 100}}
+  ],
+  "gaps": [
+    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}}
+  ],
+  "recommendations": [
+    {{
+      "title": "<specific actionable title>",
+      "description": "<2 sentence description of what to do and why>",
+      "priority": "high|medium|low",
+      "category": "content|technical|seo|competitive",
+      "actionItems": ["<step 1>", "<step 2>", "<step 3>"],
+      "estimatedImpact": "+X-Y points"
+    }}
+  ]
+}}"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=2000,
+        )
+
+        raw = response.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        return json.loads(raw)
+
+    except Exception as e:
+        print(f"⚠️  AI analysis enhancement error: {e}")
+        return {}
+
 
 # API Routes
 @app.get("/api/health")
 async def health_check():
     mongo_ok = False
-    if db is not None:
-        try:
-            await db.command("ping")
-            mongo_ok = True
-        except Exception:
-            pass
+    try:
+        await client.admin.command("ping")
+        mongo_ok = True
+    except Exception:
+        pass
     return {
-        "status": "healthy",
+        "status": "ok",
         "service": "radius-api",
-        "mongodb": "connected" if mongo_ok else "unavailable (demo mode)",
-        "openai": bool(os.getenv("OPENAI_API_KEY"))
+        "mongodb": mongo_ok,
+        "openai_configured": bool(OPENAI_API_KEY),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 @app.post("/api/analyze")
@@ -385,165 +482,180 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
         # Generate unique analysisId (CRITICAL - no cache reuse)
         analysis_id = f"analysis_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{str(uuid4())[:8]}"
         analysis_timestamp = datetime.now(timezone.utc).isoformat()
-        
+
         print(f"🔍 Starting FRESH analysis: {analysis_id}")
-        print(f"   Timestamp: {analysis_timestamp}")
-        
+
         url = request.url
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        
+
         # Extract domain
         from urllib.parse import urlparse
         parsed_url = urlparse(url)
         domain_name = parsed_url.netloc.replace('www.', '')
-        
-        # KNOWLEDGE BASE GENERATION (per-analysisId, NOT per-domain)
-        # This ensures fresh KB for every analysis
+
+        # KNOWLEDGE BASE GENERATION (non-blocking background task)
         try:
             from services.knowledge_service import knowledge_service
-            # Start KB generation using analysisId for per-analysis KB
             task = asyncio.create_task(knowledge_service.generate_from_website(url, company_id=analysis_id))
-            task.add_done_callback(lambda t: print(f"✅ KB generation completed for {analysis_id}"))
+            task.add_done_callback(lambda t: print(f"✅ KB ready for {analysis_id}"))
         except Exception as kb_error:
-            print(f"⚠️  KB generation failed (non-critical): {str(kb_error)}")
-        
-        # FRESH WEBSITE SCRAPE (no cache)
-        print(f"🌐 Fresh scraping website: {url}")
+            print(f"⚠️  KB generation skipped: {kb_error}")
+
+        # FRESH WEBSITE SCRAPE
+        print(f"🌐 Scraping: {url}")
         website_info = scrape_website(url)
-        
-        # Ensure brand name is never "Error" or empty
+
+        # Brand name cleanup
         brand_name = website_info['title']
         if not brand_name or brand_name.lower() in ['error', 'untitled', '404', 'not found', 'access denied', 'forbidden']:
             brand_name = extract_brand_name_from_url(url)
-        
-        # Clean up overly long brand names
         if len(brand_name) > 100:
             brand_name = brand_name[:100].rsplit(' ', 1)[0] + '...'
-        
+
+        # ── AI-POWERED ANALYSIS ─────────────────────────────────────────────
+        print(f"🤖 Running GPT-4o-mini analysis for {brand_name}...")
+        ai_data = enhance_analysis_with_ai(website_info, brand_name, domain_name)
+
+        # ── INDUSTRY ───────────────────────────────────────────────────────
+        industry = ai_data.get("industry", "Technology")
+
         brand_info = {
             "name": brand_name,
             "domain": domain_name,
-            "industry": "Technology",
-            "description": website_info['description'] or f"Analysis for {brand_name}"
+            "industry": industry,
+            "description": website_info['description'] or f"Analysis for {brand_name}",
         }
-        
-        # Calculate platform scores
-        base_score = 60
-        if website_info['hasFAQ']:
-            base_score += 10
-        if website_info['hasTestimonials']:
-            base_score += 8
-        if website_info['hasPricing']:
-            base_score += 7
-        if website_info['hasBlog']:
-            base_score += 5
-        
-        platform_scores = [
-            {"platform": "ChatGPT", "score": min(base_score + 5, 100), "color": "hsl(var(--chart-1))"},
-            {"platform": "Claude", "score": min(base_score, 100), "color": "hsl(var(--chart-3))"},
-            {"platform": "Gemini", "score": min(base_score + 3, 100), "color": "hsl(var(--chart-4))"},
-            {"platform": "Perplexity", "score": min(base_score + 7, 100), "color": "hsl(var(--chart-2))"},
+
+        # ── PLATFORM SCORES ────────────────────────────────────────────────
+        if ai_data.get("platform_scores"):
+            ps = ai_data["platform_scores"]
+            platform_scores = [
+                {"platform": "ChatGPT",    "score": int(ps.get("chatgpt", 65)),    "color": "hsl(var(--chart-1))"},
+                {"platform": "Claude",     "score": int(ps.get("claude", 60)),     "color": "hsl(var(--chart-3))"},
+                {"platform": "Gemini",     "score": int(ps.get("gemini", 63)),     "color": "hsl(var(--chart-4))"},
+                {"platform": "Perplexity", "score": int(ps.get("perplexity", 67)), "color": "hsl(var(--chart-2))"},
+            ]
+        else:
+            base_score = 60
+            if website_info['hasFAQ']:       base_score += 10
+            if website_info['hasTestimonials']: base_score += 8
+            if website_info['hasPricing']:   base_score += 7
+            if website_info['hasBlog']:      base_score += 5
+            platform_scores = [
+                {"platform": "ChatGPT",    "score": min(base_score + 5, 100), "color": "hsl(var(--chart-1))"},
+                {"platform": "Claude",     "score": min(base_score,     100), "color": "hsl(var(--chart-3))"},
+                {"platform": "Gemini",     "score": min(base_score + 3, 100), "color": "hsl(var(--chart-4))"},
+                {"platform": "Perplexity", "score": min(base_score + 7, 100), "color": "hsl(var(--chart-2))"},
+            ]
+
+        overall_score = int(ai_data.get("overall_score") or
+                            sum(p['score'] for p in platform_scores) // len(platform_scores))
+
+        # ── DIMENSION SCORES ───────────────────────────────────────────────
+        dimension_scores = ai_data.get("dimension_scores") or [
+            {"dimension": "Mention Rate",    "score": overall_score + 5,  "fullMark": 100},
+            {"dimension": "Context Quality", "score": overall_score,      "fullMark": 100},
+            {"dimension": "Sentiment",       "score": overall_score + 10, "fullMark": 100},
+            {"dimension": "Prominence",      "score": overall_score - 5,  "fullMark": 100},
+            {"dimension": "Comparison",      "score": overall_score - 8,  "fullMark": 100},
+            {"dimension": "Recommendation",  "score": overall_score + 3,  "fullMark": 100},
         ]
-        
-        overall_score = sum(p['score'] for p in platform_scores) // len(platform_scores)
-        
-        # Dimension scores
-        dimension_scores = [
-            {"dimension": "Mention Rate", "score": base_score + 10, "fullMark": 100},
-            {"dimension": "Context Quality", "score": base_score + 5, "fullMark": 100},
-            {"dimension": "Sentiment", "score": base_score + 15, "fullMark": 100},
-            {"dimension": "Prominence", "score": base_score, "fullMark": 100},
-            {"dimension": "Comparison", "score": base_score - 10 if not website_info['hasComparisons'] else base_score + 15, "fullMark": 100},
-            {"dimension": "Recommendation", "score": base_score + 8, "fullMark": 100},
+        # Clamp all scores to 0–100
+        for d in dimension_scores:
+            d["score"] = max(0, min(100, int(d["score"])))
+
+        # ── GAPS ───────────────────────────────────────────────────────────
+        gaps = ai_data.get("gaps") or [
+            {"element": "FAQ Section",          "impact": "high",   "found": website_info['hasFAQ']},
+            {"element": "Comparison Pages",     "impact": "high",   "found": website_info['hasComparisons']},
+            {"element": "Customer Testimonials","impact": "medium", "found": website_info['hasTestimonials']},
+            {"element": "Pricing Information",  "impact": "medium", "found": website_info['hasPricing']},
+            {"element": "Blog Content",         "impact": "medium", "found": website_info['hasBlog']},
         ]
-        
-        # Gaps
-        gaps = [
-            {"element": "FAQ Section", "impact": "high", "found": website_info['hasFAQ']},
-            {"element": "Comparison Pages", "impact": "high", "found": website_info['hasComparisons']},
-            {"element": "Customer Testimonials", "impact": "medium", "found": website_info['hasTestimonials']},
-            {"element": "Pricing Information", "impact": "medium", "found": website_info['hasPricing']},
-            {"element": "Blog Content", "impact": "medium", "found": website_info['hasBlog']},
-        ]
-        
-        # Recommendations
-        recommendations = []
-        if not website_info['hasFAQ']:
-            recommendations.append({
-                "title": "Add FAQ Section",
-                "description": "Create a comprehensive FAQ to improve AI visibility",
-                "priority": "high",
-                "category": "content",
-                "actionItems": ["Research common questions", "Create FAQ page", "Add schema markup"],
-                "estimatedImpact": "+10-15 points"
-            })
-        
-        if not website_info['hasComparisons']:
-            recommendations.append({
-                "title": "Create Comparison Pages",
-                "description": "Build competitor comparison content",
-                "priority": "high",
-                "category": "competitive",
-                "actionItems": ["Identify competitors", "Create comparison pages", "Optimize for search"],
-                "estimatedImpact": "+15-20 points"
-            })
-        
-        # Identify real competitors using AI with website context
-        from services.competitor_intelligence import competitor_service
-        
-        print(f"🔍 Identifying DIRECT competitors for: {brand_info['name']}")
-        print(f"   Domain: {brand_info['domain']}")
-        print(f"   Description: {brand_info.get('description', 'N/A')[:100]}")
-        
-        # Pass website content for better context
-        website_context = f"{website_info.get('title', '')}. {website_info.get('description', '')}. Headings: {', '.join(website_info.get('headings', [])[:10])}"
-        
-        identified_competitors = competitor_service.identify_competitors(
-            company_name=brand_info['name'],
-            domain=brand_info['domain'],
-            description=brand_info.get('description', brand_info['name']),
-            industry=brand_info.get('industry', 'Technology'),
-            website_content=website_context
-        )
-        
-        print(f"✅ Got {len(identified_competitors)} DIRECT competitors from service")
-        
-        # Build competitors list with current brand first
-        competitors = [
-            {
-                "rank": 1,
-                "name": brand_info['name'],
-                "domain": brand_info['domain'],
-                "score": overall_score,
-                "marketOverlap": 100,
-                "strengths": ["Current analysis target"],
-                "isCurrentBrand": True
-            }
-        ]
-        
-        # Add identified competitors with simulated scores
+
+        # ── RECOMMENDATIONS ────────────────────────────────────────────────
+        recommendations = ai_data.get("recommendations") or []
+        if not recommendations:
+            if not website_info['hasFAQ']:
+                recommendations.append({
+                    "title": "Add FAQ Section",
+                    "description": "Create a comprehensive FAQ to improve AI answerability. AI engines heavily reference FAQ content when answering brand queries.",
+                    "priority": "high",
+                    "category": "content",
+                    "actionItems": ["Research top 20 customer questions", "Create FAQ page with schema markup", "Include questions AI engines ask about your category"],
+                    "estimatedImpact": "+10-15 points"
+                })
+            if not website_info['hasComparisons']:
+                recommendations.append({
+                    "title": "Create Comparison Pages",
+                    "description": "Build vs-competitor pages to capture comparison queries. These are the most common AI-assisted purchase-intent queries.",
+                    "priority": "high",
+                    "category": "competitive",
+                    "actionItems": ["Identify top 3-5 competitors", "Build dedicated comparison pages", "Add structured data for comparison tables"],
+                    "estimatedImpact": "+12-18 points"
+                })
+            if not website_info['hasTestimonials']:
+                recommendations.append({
+                    "title": "Add Social Proof",
+                    "description": "AI models weigh credibility signals heavily. Third-party reviews and case studies dramatically improve trust scores.",
+                    "priority": "medium",
+                    "category": "content",
+                    "actionItems": ["Add customer testimonials", "Embed G2/Trustpilot widgets", "Publish 2-3 case studies"],
+                    "estimatedImpact": "+8-12 points"
+                })
+
+        # ── COMPETITORS ────────────────────────────────────────────────────
+        try:
+            from services.competitor_intelligence import competitor_service
+            website_context = (
+                f"{website_info.get('title', '')}. "
+                f"{website_info.get('description', '')}. "
+                f"Headings: {', '.join(website_info.get('headings', [])[:10])}"
+            )
+            identified_competitors = competitor_service.identify_competitors(
+                company_name=brand_info['name'],
+                domain=brand_info['domain'],
+                description=brand_info.get('description', brand_info['name']),
+                industry=industry,
+                website_content=website_context,
+            )
+            print(f"✅ {len(identified_competitors)} competitors identified")
+        except Exception as comp_err:
+            print(f"⚠️  Competitor service error: {comp_err}")
+            identified_competitors = []
+
+        competitors = [{
+            "rank": 1,
+            "name": brand_info['name'],
+            "domain": brand_info['domain'],
+            "score": overall_score,
+            "marketOverlap": 100,
+            "strengths": ["Current analysis target"],
+            "isCurrentBrand": True,
+        }]
         for idx, comp in enumerate(identified_competitors, start=2):
-            # Simulate competitive scores (slightly varied from main brand)
-            comp_score = overall_score + ((idx - 2) * -3)  # Slight degradation for lower ranks
+            comp_score = max(overall_score + ((idx - 2) * -3), 40)
             competitors.append({
                 "rank": idx,
                 "name": comp['name'],
                 "domain": comp['domain'],
-                "score": max(comp_score, 40),  # Minimum score of 40
-                "marketOverlap": max(100 - (idx * 10), 50),  # Decreasing overlap
+                "score": comp_score,
+                "marketOverlap": max(100 - (idx * 10), 50),
                 "strengths": [comp.get('description', 'Competitor in same space')],
-                "isCurrentBrand": False
+                "isCurrentBrand": False,
             })
-        
-        # GEO Metrics
+
+        # ── GEO METRICS ────────────────────────────────────────────────────
         geo_metrics = {
-            "aic": round(base_score / 10, 1),
-            "ces": round((base_score + 5) / 10, 1),
-            "mts": round((base_score + 10) / 10, 1),
-            "overall": round((base_score + 5) / 10, 1)
+            "aic": float(ai_data.get("aic") or round(overall_score * 0.40 / 10, 1)),
+            "ces": float(ai_data.get("ces") or round(overall_score * 0.35 / 10, 1)),
+            "mts": float(ai_data.get("mts") or round(overall_score * 0.25 / 10, 1)),
+            "overall": float(ai_data.get("aic") and round(
+                ai_data["aic"] * 0.40 + ai_data.get("ces", 6) * 0.35 + ai_data.get("mts", 6) * 0.25, 1
+            ) or round(overall_score / 10, 1)),
         }
-        
+
         result = {
             "url": url,
             "brandInfo": brand_info,
@@ -554,28 +666,33 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
             "gaps": gaps,
             "recommendations": recommendations,
             "geoMetrics": geo_metrics,
-            # CRITICAL: Include analysisId for routing and data provenance
             "analysisId": analysis_id,
             "analyzedAt": analysis_timestamp,
             "dataProvenance": {
                 "cache_used": False,
                 "fresh_crawl": True,
-                "fresh_gpt_call": True,
-                "timestamp": analysis_timestamp
-            }
+                "ai_powered": bool(ai_data),
+                "timestamp": analysis_timestamp,
+            },
         }
-        
-        # Save to MongoDB with analysisId as primary key
-        await db.analyses.insert_one({
-            **result,
-            "_analysis_id": analysis_id  # Additional index field
-        })
-        
-        print(f"✅ Analysis complete: {analysis_id}")
+
+        # ── PERSIST ────────────────────────────────────────────────────────
+        # Always cache in memory first (works even without MongoDB)
+        _cache_put(analysis_id, result)
+
+        # Try MongoDB (non-critical)
+        try:
+            await db.analyses.insert_one({**result, "_analysis_id": analysis_id})
+        except Exception as db_err:
+            print(f"⚠️  MongoDB write skipped (non-critical): {db_err}")
+
+        print(f"✅ Analysis complete: {analysis_id}  score={overall_score}  industry={industry}")
         return result
-        
+
     except Exception as e:
         print(f"❌ Analysis error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/api/analysis/{analysis_id}")
@@ -589,17 +706,32 @@ async def get_analysis(analysis_id: str):
     - NO re-caching - just retrieves stored data
     """
     try:
-        # Find analysis by analysisId
-        analysis = await db.analyses.find_one(
-            {"analysisId": analysis_id},
-            {"_id": 0}  # Exclude MongoDB _id
-        )
-        
+        # 1. Check in-memory cache first (always available, survives MongoDB being down)
+        cached = _cache_get(analysis_id)
+        if cached:
+            print(f"✅ Served from cache: {analysis_id}")
+            return cached
+
+        # 2. Fallback to MongoDB
+        try:
+            analysis = await db.analyses.find_one(
+                {"analysisId": analysis_id},
+                {"_id": 0},
+            )
+        except Exception as db_err:
+            print(f"⚠️  MongoDB read failed: {db_err}")
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis not found in cache and database is unavailable. Please run a new analysis."
+            )
+
         if not analysis:
             raise HTTPException(status_code=404, detail=f"Analysis not found: {analysis_id}")
-        
+
+        # Warm the cache for subsequent requests
+        _cache_put(analysis_id, analysis)
         return analysis
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -646,7 +778,7 @@ async def radius_full_analysis(request: AnalyzeRequest):
         print(f"❌ Radius analysis error: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Radius analysis failed: {str(e)}")
 
 @app.post("/api/radius/analyze-quick")
 async def radius_quick_analysis(request: AnalyzeRequest):
@@ -1015,104 +1147,6 @@ async def analyze_reddit_thread(
     
     return analysis
 
-@app.post("/api/gap-analysis")
-async def gap_analysis_endpoint(request: dict):
-    """
-    Analyze perception gap between AI and consumers.
-    ONE GPT-4o-mini call.
-    """
-    from services.gap_analysis import GapAnalysisService
-    svc = GapAnalysisService()
-    try:
-        result = await svc.analyze_gap(
-            brand_name=request.get("brand_name", ""),
-            category=request.get("category", ""),
-            ai_scores=request.get("ai_scores", {}),
-            website_data=request.get("website_data", {}),
-        )
-        return result
-    except Exception as e:
-        print(f"Gap analysis error: {e}")
-        return svc._demo_data()
-
-@app.post("/api/ad-intelligence")
-async def ad_intelligence_endpoint(request: dict):
-    """
-    Get advertising intelligence insights.
-    ONE GPT-4o-mini call.
-    """
-    from services.ad_intelligence import AdIntelligenceService
-    svc = AdIntelligenceService()
-    try:
-        result = await svc.analyze_ads(
-            brand_name=request.get("brand_name", ""),
-            category=request.get("category", ""),
-            website_data=request.get("website_data", {}),
-        )
-        return result
-    except Exception as e:
-        print(f"Ad intelligence error: {e}")
-        return svc._demo_data()
-
-@app.post("/api/content-pipeline/social")
-async def content_pipeline_social(request: dict):
-    """Social conversation intelligence"""
-    from services.social_scraper import SocialScraperService
-    svc = SocialScraperService()
-    try:
-        return await svc.scrape_social(
-            keywords=request.get("keywords", []),
-            brand_name=request.get("brand_name", ""),
-        )
-    except Exception as e:
-        print(f"Social scraper error: {e}")
-        return svc._demo_data()
-
-@app.post("/api/content-pipeline/blog")
-async def content_pipeline_blog(request: dict):
-    """SEO blog generation"""
-    from services.blog_engine import BlogEngineService
-    svc = BlogEngineService()
-    try:
-        return await svc.generate_blog(
-            topic=request.get("topic", ""),
-            brand_name=request.get("brand_name", ""),
-            keywords=request.get("keywords", []),
-            social_data=request.get("social_data", {}),
-        )
-    except Exception as e:
-        print(f"Blog engine error: {e}")
-        return svc._demo_data()
-
-@app.post("/api/content-pipeline/export")
-async def content_pipeline_export(request: dict):
-    """CMS export"""
-    from services.cms_exporter import CMSExporterService
-    svc = CMSExporterService()
-    try:
-        return svc.export(
-            content=request.get("content", {}),
-            format=request.get("format", "json"),
-        )
-    except Exception as e:
-        print(f"CMS export error: {e}")
-        return {"error": str(e)}
-
-@app.post("/api/search-intelligence")
-async def search_intelligence_endpoint(request: dict):
-    """Search & SGE Intelligence"""
-    from services.search_intelligence import SearchIntelligenceService
-    svc = SearchIntelligenceService()
-    try:
-        return await svc.analyze_search(
-            brand_name=request.get("brand_name", ""),
-            category=request.get("category", ""),
-            website_data=request.get("website_data", {}),
-        )
-    except Exception as e:
-        print(f"Search intelligence error: {e}")
-        return svc._demo_data()
-
 @app.post("/api/generate-brief")
 async def generate_brief(request: dict):
     """
@@ -1168,6 +1202,48 @@ Generate a brief 2-3 sentence analysis of their performance."""
     except Exception as e:
         print(f"Brief generation error: {str(e)}")
         return {"brief": f"With an overall score of {overall_score}/100, {brand_name} demonstrates solid performance across AI platforms."}
+
+@app.post("/api/gap-analysis")
+async def gap_analysis_endpoint(request: dict):
+    """
+    Analyze the gap between AI perception and real consumer perception of a brand.
+    """
+    from services.gap_analysis import gap_analysis_service
+
+    try:
+        result = await gap_analysis_service.analyze_gap(
+            brand_name=request.get("brand_name", "Unknown Brand"),
+            category=request.get("category", "Technology"),
+            ai_scores=request.get("ai_scores", {}),
+            website_data=request.get("website_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️  Gap analysis endpoint error: {e}")
+        from services.gap_analysis import _DEMO_DATA
+        return _DEMO_DATA
+
+
+@app.post("/api/ad-intelligence")
+async def ad_intelligence_endpoint(request: dict):
+    """
+    Extract ad strategy, keyword intelligence, and competitor ad strategies for a brand.
+    """
+    from services.ad_intelligence import ad_intelligence_service
+
+    try:
+        result = await ad_intelligence_service.analyze_ads(
+            brand_name=request.get("brand_name", "Unknown Brand"),
+            category=request.get("category", "Technology"),
+            competitors=request.get("competitors", []),
+            website_data=request.get("website_data", {}),
+        )
+        return result
+    except Exception as e:
+        print(f"⚠️  Ad intelligence endpoint error: {e}")
+        from services.ad_intelligence import _DEMO_DATA
+        return _DEMO_DATA
+
 
 @app.get("/")
 async def root():

@@ -76,7 +76,7 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
     <div className="min-h-screen flex items-center justify-center pt-20 pb-16 px-6 bg-white">
       <div className="max-w-4xl mx-auto text-center space-y-8">
         <h1 className="md:text-6xl lg:text-7xl font-black tracking-tight text-black text-[75px]">
-          Increase your visibility
+          Dominate AI Search
           <br />
           <span className="relative inline-block">
             <span className="relative inline-block text-white mt-[19px] mb-[19px]" style={{
@@ -84,13 +84,13 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
               padding: '8px 20px',
               borderRadius: '12px'
             }}>
-              across AI platforms
+              before competitors do
             </span>
           </span>
         </h1>
 
         <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-          Discover how ChatGPT, Claude, Gemini, and Perplexity perceive your brand. Get actionable insights to boost your AI presence.
+          Full-stack AI visibility platform. Analyze how ChatGPT, Claude, Gemini &amp; Perplexity see your brand — then close the gap with AI-powered recommendations, competitor intelligence, and ad strategy.
         </p>
 
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-12">
@@ -150,7 +150,7 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
           )}
           
           <p className="text-sm text-gray-500 mt-4">
-            No credit card required • Free comprehensive analysis • Results in 30 seconds
+            No credit card required • GPT-4o powered analysis • 6 intelligence modules
           </p>
         </form>
 
@@ -167,11 +167,11 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
         <div className="flex flex-wrap items-center justify-center gap-8 pt-8 mt-[-35px] mb-[-35px]">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-gray-700">500+ analyses run</span>
+            <span className="text-sm font-medium text-gray-700">GPT-4o-mini powered</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-black">89%</span>
-            <span className="text-sm text-gray-600">avg improvement</span>
+            <span className="text-2xl font-bold text-black">6</span>
+            <span className="text-sm text-gray-600">intelligence modules</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold text-black">4</span>

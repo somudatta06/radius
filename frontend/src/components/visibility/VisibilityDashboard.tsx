@@ -201,7 +201,7 @@ export function VisibilityDashboard({ brandId = 'current', domain }: VisibilityD
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={(entry) => `${entry.competitor_name}: ${entry.share}%`}
+                    label={(entry: any) => `${entry.competitor_name}: ${entry.share}%`}
                   >
                     {shareData.competitors.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
