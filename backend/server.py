@@ -900,7 +900,7 @@ async def update_company_description(
 @app.post("/api/knowledge-base/improve")
 async def improve_text(
     text: str,
-    mode: str = Query("improve", regex="^(improve|concise|authoritative|regenerate)$")
+    mode: str = Query("improve", pattern="^(improve|concise|authoritative|regenerate)$")
 ):
     """AI text improvement"""
     from services.knowledge_service import knowledge_service
