@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
       allowedHosts: ['localhost', '.emergentagent.com'],
+      proxy: {
+        '/api': {
+          target: env.REACT_APP_BACKEND_URL || 'http://localhost:8001',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });
