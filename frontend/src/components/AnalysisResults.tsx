@@ -40,14 +40,12 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { id: "overview", label: "Overview" },
-  { id: "gap-analysis", label: "Gap Analysis" },
   { id: "ad-intelligence", label: "Ad Intelligence" },
   { id: "content-pipeline", label: "Content Pipeline" },
   { id: "search-sge", label: "Search & SGE" },
   { id: "schema-generator", label: "Schema Generator" },
   { id: "knowledge-base", label: "Knowledge Base" },
   { id: "visibility", label: "Visibility" },
-  { id: "recommendations", label: "Recommendations" },
   { id: "score-breakdown", label: "Score Breakdown" },
   { id: "competitors", label: "Competitor Analysis" },
   { id: "reddit", label: "Reddit Intelligence" },
@@ -311,17 +309,6 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
           </div>
         )}
 
-        {activeTab === "gap-analysis" && (
-          <div className="space-y-6" data-testid="content-gap-analysis">
-            <GapAnalysis
-              brandName={brandInfo?.name}
-              domain={domain}
-              overallScore={overallScore}
-              category={brandInfo?.industry}
-            />
-          </div>
-        )}
-
         {activeTab === "ad-intelligence" && (
           <div className="space-y-6" data-testid="content-ad-intelligence">
             <AdIntelligence
@@ -353,34 +340,6 @@ export default function AnalysisResults({ data, analysisId }: AnalysisResultsPro
           </div>
         )}
 
-        {activeTab === "recommendations" && (
-          <div className="space-y-6" data-testid="content-recommendations">
-            <h2 className="text-2xl font-bold">AI-Generated Recommendations</h2>
-            <p className="text-muted-foreground">
-              Actionable insights to improve your AI visibility and platform performance
-            </p>
-
-            {/* Missing Elements Card - Always First */}
-            {gaps && gaps.length > 0 && (
-              <MissingElementsCard gaps={gaps} />
-            )}
-
-            {/* Recommendations Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {recommendations.map((rec, idx: number) => (
-                <RecommendationCard
-                  key={idx}
-                  title={rec.title}
-                  description={rec.description}
-                  priority={rec.priority}
-                  category={rec.category}
-                  actionItems={rec.actionItems}
-                  estimatedImpact={rec.estimatedImpact}
-                />
-              ))}
-            </div>
-          </div>
-        )}
         {activeTab === "score-breakdown" && (
           <div className="space-y-6" data-testid="content-score-breakdown">
             <h2 className="text-2xl font-bold">Dimension Analysis</h2>
