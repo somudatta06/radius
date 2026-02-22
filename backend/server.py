@@ -396,18 +396,28 @@ Analyze this brand's website content and return a JSON object with accurate AI v
 WEBSITE DATA:
 {content_summary}
 
+SCORING CALIBRATION GUIDE (very important — do not score too low):
+- A real, live e-commerce or SaaS website with product pages should score AIC >= 4, MTS >= 4
+- Only score below 3 if the page is completely blank, broken, or has < 100 words of content
+- A website with products, descriptions, and headings is a functioning brand and deserves fair scoring
+- Most real websites fall between 35-75 on overall_score; only truly empty sites score below 25
+
+SCORING FORMULA — compute overall_score EXACTLY as:
+  overall_score = round( (AIC * 0.40 + CES * 0.35 + MTS * 0.25) * 10 )
+Example: AIC=5, CES=4, MTS=6 → (5*0.40 + 4*0.35 + 6*0.25)*10 = (2.0+1.4+1.5)*10 = 49
+
 Return ONLY this JSON (no markdown, no extra text):
 {{
-  "industry": "<specific industry, e.g. SaaS, E-commerce, Fintech, Healthcare, EdTech, Marketing Tech>",
-  "aic": <0-10, Answerability & Intent Coverage — how well the site answers user questions AI would ask>,
-  "ces": <0-10, Credibility Evidence & Safety — trust signals: testimonials, certifications, case studies>,
-  "mts": <0-10, Machine-Readability & Technical — structured data, schema, clean HTML, fast load signals>,
-  "overall_score": <0-100, weighted GEO score: AIC*0.40 + CES*0.35 + MTS*0.25 * 10>,
+  "industry": "<specific industry, e.g. D2C Fashion, SaaS, E-commerce, Fintech, Healthcare, EdTech>",
+  "aic": <1-10, Answerability & Intent Coverage — how well site answers questions AI would ask about this brand>,
+  "ces": <1-10, Credibility Evidence & Safety — trust signals: reviews, certifications, case studies, about page>,
+  "mts": <1-10, Machine-Readability & Technical — schema markup, clean HTML, meta tags, structured data>,
+  "overall_score": <compute exactly as (AIC*0.40 + CES*0.35 + MTS*0.25)*10, round to integer>,
   "platform_scores": {{
-    "chatgpt": <0-100>,
-    "claude": <0-100>,
-    "gemini": <0-100>,
-    "perplexity": <0-100>
+    "chatgpt": <overall_score ± 5, integer 0-100>,
+    "claude": <overall_score ± 5, integer 0-100>,
+    "gemini": <overall_score ± 5, integer 0-100>,
+    "perplexity": <overall_score ± 5, integer 0-100>
   }},
   "dimension_scores": [
     {{"dimension": "Mention Rate", "score": <0-100>, "fullMark": 100}},
@@ -418,16 +428,16 @@ Return ONLY this JSON (no markdown, no extra text):
     {{"dimension": "Recommendation", "score": <0-100>, "fullMark": 100}}
   ],
   "gaps": [
-    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
-    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
-    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
-    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}},
-    {{"element": "<content element>", "impact": "high|medium|low", "found": true|false}}
+    {{"element": "<specific missing content element for this brand>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<specific missing content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<specific missing content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<specific missing content element>", "impact": "high|medium|low", "found": true|false}},
+    {{"element": "<specific missing content element>", "impact": "high|medium|low", "found": true|false}}
   ],
   "recommendations": [
     {{
-      "title": "<specific actionable title>",
-      "description": "<2 sentence description of what to do and why>",
+      "title": "<specific actionable title for this brand>",
+      "description": "<2 sentence description of what to do and why it matters for AI visibility>",
       "priority": "high|medium|low",
       "category": "content|technical|seo|competitive",
       "actionItems": ["<step 1>", "<step 2>", "<step 3>"],
@@ -571,8 +581,22 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
                 {"platform": "Perplexity", "score": min(base_score + 7, 100), "color": "hsl(var(--chart-2))"},
             ]
 
-        overall_score = int(ai_data.get("overall_score") or
-                            sum(p['score'] for p in platform_scores) // len(platform_scores))
+        # ── OVERALL SCORE — always recalculate from sub-scores to avoid GPT formula errors
+        aic_raw = float(ai_data.get("aic") or 0)
+        ces_raw = float(ai_data.get("ces") or 0)
+        mts_raw = float(ai_data.get("mts") or 0)
+        if aic_raw and ces_raw and mts_raw:
+            # Correct formula: (AIC*0.40 + CES*0.35 + MTS*0.25) * 10
+            calculated_score = round((aic_raw * 0.40 + ces_raw * 0.35 + mts_raw * 0.25) * 10)
+            # Use server-calculated score; fall back to GPT overall_score, then platform average
+            overall_score = max(calculated_score, 10)  # minimum 10 for any reachable site
+        else:
+            gpt_overall = ai_data.get("overall_score")
+            if gpt_overall and int(gpt_overall) > 5:
+                overall_score = int(gpt_overall)
+            else:
+                overall_score = sum(p['score'] for p in platform_scores) // len(platform_scores)
+        overall_score = max(0, min(100, overall_score))
 
         # ── DIMENSION SCORES ───────────────────────────────────────────────
         dimension_scores = ai_data.get("dimension_scores") or [
@@ -668,14 +692,13 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
                 "isCurrentBrand": False,
             })
 
-        # ── GEO METRICS ────────────────────────────────────────────────────
+        # ── GEO METRICS — derived consistently from the same aic/ces/mts used above ──────
         geo_metrics = {
-            "aic": float(ai_data.get("aic") or round(overall_score * 0.40 / 10, 1)),
-            "ces": float(ai_data.get("ces") or round(overall_score * 0.35 / 10, 1)),
-            "mts": float(ai_data.get("mts") or round(overall_score * 0.25 / 10, 1)),
-            "overall": float(ai_data.get("aic") and round(
-                ai_data["aic"] * 0.40 + ai_data.get("ces", 6) * 0.35 + ai_data.get("mts", 6) * 0.25, 1
-            ) or round(overall_score / 10, 1)),
+            "aic": round(aic_raw or (overall_score * 0.40 / 10), 1),
+            "ces": round(ces_raw or (overall_score * 0.35 / 10), 1),
+            "mts": round(mts_raw or (overall_score * 0.25 / 10), 1),
+            # overall on 0-10 scale for the metric cards
+            "overall": round(overall_score / 10, 1),
         }
 
         result = {
