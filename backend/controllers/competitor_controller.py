@@ -9,7 +9,7 @@ tracxn.py is preserved but not imported here.
 from typing import Optional, List, Dict
 from fastapi import HTTPException, Query
 from services.tracxn_mock import get_mock_competitors
-from services.openai_analysis import openai_analysis_service
+from services.openai_analysis import gemini_analysis_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ async def discover_and_analyze_competitors(
     """
     Discover and analyze competitors with AI insights
     
-    Combines Tracxn data with OpenAI analysis for strategic insights
+    Combines Tracxn data with Gemini AI analysis for strategic insights
     
     Returns:
         {
@@ -107,7 +107,7 @@ async def discover_and_analyze_competitors(
         
         # Add AI analysis if requested
         if analyze and competitor_data["competitors"]:
-            analysis = openai_analysis_service.analyze_competitors(
+            analysis = gemini_analysis_service.analyze_competitors(
                 competitor_data["competitors"]
             )
             

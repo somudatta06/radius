@@ -1,19 +1,19 @@
 """
-RADIUS PHASE 2 & 3: ChatGPT-Powered Refinement & Knowledge Base Creation
+RADIUS PHASE 2 & 3: Gemini-Powered Refinement & Knowledge Base Creation
 Transforms raw crawl data into structured, normalized knowledge
 """
 import os
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
-from openai import OpenAI
+from services.gemini_client import get_gemini_model
 
 class RadiusKnowledgeEngine:
     """
-    PHASE 2: ChatGPT Refinement Layer
+    PHASE 2: Gemini Refinement Layer
     PHASE 3: Knowledge Base Creation
     
-    ChatGPT's STRICT role:
+    Gemini's STRICT role:
     ✅ Clean marketing language into neutral descriptions
     ✅ Resolve contradictions across pages
     ✅ Infer obvious business model details
@@ -25,8 +25,7 @@ class RadiusKnowledgeEngine:
     """
     
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.openai_key) if self.openai_key else None
+        self.model = get_gemini_model()
     
     def refine_and_create_kb(self, crawl_data: Dict) -> Dict[str, Any]:
         """
@@ -34,24 +33,21 @@ class RadiusKnowledgeEngine:
         
         Returns structured KB with confidence scores
         """
-        if not self.client:
-            # Reinitialize if key was loaded after init
-            self.openai_key = os.getenv("OPENAI_API_KEY")
-            if self.openai_key:
-                self.client = OpenAI(api_key=self.openai_key)
+        if not self.model:
+            self.model = get_gemini_model()
         
-        if not self.client:
-            print("⚠️ OpenAI not available - returning low-confidence KB")
+        if not self.model:
+            print("⚠️ Gemini not available - returning low-confidence KB")
             return self._create_fallback_kb(crawl_data)
         
-        print("🧠 PHASE 2: Starting ChatGPT refinement...")
+        print("🧠 PHASE 2: Starting Gemini refinement...")
         
         # Prepare context from crawl data
         context = self._prepare_context(crawl_data)
         
         try:
-            # Call ChatGPT for refinement
-            kb_response = self._call_gpt_for_kb(context)
+            # Call Gemini for refinement
+            kb_response = self._call_gemini_for_kb(context)
             
             # Validate and score confidence
             kb = self._validate_and_score(kb_response, crawl_data)
@@ -60,11 +56,11 @@ class RadiusKnowledgeEngine:
             return kb
             
         except Exception as e:
-            print(f"❌ GPT refinement error: {str(e)}")
+            print(f"❌ Gemini refinement error: {str(e)}")
             return self._create_fallback_kb(crawl_data)
     
     def _prepare_context(self, crawl_data: Dict) -> str:
-        """Prepare context string from crawl data for GPT"""
+        """Prepare context string from crawl data for Gemini"""
         parts = []
         
         # Add metadata
@@ -135,8 +131,8 @@ class RadiusKnowledgeEngine:
         
         return '\n'.join(parts)[:15000]  # Limit total context
     
-    def _call_gpt_for_kb(self, context: str) -> Dict:
-        """Call GPT to create structured Knowledge Base"""
+    def _call_gemini_for_kb(self, context: str) -> Dict:
+        """Call Gemini to create structured Knowledge Base"""
         
         system_prompt = """You are a business analyst for the Radius AI Visibility Engine.
 
@@ -214,19 +210,19 @@ Remember:
 
 Return the Knowledge Base as JSON:"""
 
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0,  # Deterministic output
-            max_tokens=3000,
-            response_format={"type": "json_object"}
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+        response = self.model.generate_content(
+            full_prompt,
+            generation_config={
+                "temperature": 0,
+                "max_output_tokens": 3000,
+                "response_mime_type": "application/json",
+            }
         )
         
-        result = json.loads(response.choices[0].message.content)
-        print(f"  ✅ GPT KB response received")
+        result = json.loads(response.text)
+        print(f"  ✅ Gemini KB response received")
         return result
     
     def _validate_and_score(self, kb_response: Dict, crawl_data: Dict) -> Dict:
@@ -253,8 +249,8 @@ Return the Knowledge Base as JSON:"""
             "knowledge_base": kb_response,
             "metadata": {
                 "created_at": datetime.now(timezone.utc).isoformat(),
-                "source": "gpt_refined",
-                "model": "gpt-4o",
+                "source": "gemini_refined",
+                "model": "gemini-2.0-flash",
                 "temperature": 0,
                 "pages_analyzed": pages_crawled,
                 "total_content_chars": total_content,
@@ -304,7 +300,7 @@ Return the Knowledge Base as JSON:"""
         return scores
     
     def _create_fallback_kb(self, crawl_data: Dict) -> Dict:
-        """Create basic KB when GPT is unavailable"""
+        """Create basic KB when Gemini is unavailable"""
         domain = crawl_data['metadata']['domain']
         extracted = crawl_data.get('extracted_data', {})
         
@@ -347,7 +343,7 @@ Return the Knowledge Base as JSON:"""
                 "confidence_notes": {
                     "high_confidence": [],
                     "medium_confidence": [],
-                    "low_confidence": ["All fields - GPT analysis unavailable"]
+                    "low_confidence": ["All fields - Gemini analysis unavailable"]
                 }
             },
             "metadata": {

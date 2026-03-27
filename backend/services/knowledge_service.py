@@ -16,7 +16,6 @@ class KnowledgeService:
     """Service for managing knowledge base"""
     
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
         self.synthesizer = KnowledgeSynthesizer()
     
     async def get_knowledge_base(self, company_id: str = "default") -> Dict:
@@ -105,7 +104,7 @@ class KnowledgeService:
         # 1. Crawl the website
         # 2. Analyze previous analyses
         # 3. Extract competitor context
-        # 4. Use GPT-4 to generate structured description
+        # 4. Use Gemini to generate structured description
         
         generated_description = f"""## Overview
 A leading technology company specializing in innovative solutions for modern businesses.
@@ -189,7 +188,7 @@ Positioned as a premium AI-powered analytics solution that combines ease of use 
         - authoritative: make more confident
         - regenerate: start fresh
         """
-        # Mock improvement (in production, use GPT-4)
+        # Mock improvement (in production, use Gemini)
         improvements = {
             "improve": lambda t: t.replace("good", "excellent").replace("nice", "outstanding"),
             "concise": lambda t: " ".join(t.split()[:len(t.split())//2]) + "...",
@@ -212,7 +211,7 @@ Positioned as a premium AI-powered analytics solution that combines ease of use 
     
     async def extract_guidelines_from_url(self, url: str) -> Dict:
         """Extract brand guidelines from URL using AI"""
-        # Mock extraction (in production, crawl + GPT-4 analysis)
+        # Mock extraction (in production, crawl + Gemini analysis)
         return {
             "tone": "professional, data-driven",
             "words_to_prefer": ["analyze", "insight", "optimize"],

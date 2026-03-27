@@ -6,20 +6,18 @@ and AI-powered search results.
 import os
 import json
 from typing import Dict, Any
+from services.gemini_client import get_gemini_model
 
 
 class SchemaGeneratorService:
-    """Generates JSON-LD schema markup using GPT to improve AI visibility."""
+    """Generates JSON-LD schema markup using Gemini to improve AI visibility."""
 
     async def generate_schemas(self, brand_name: str, domain: str, website_data: dict, analysis_data: dict) -> dict:
-        """ONE GPT call to generate relevant JSON-LD schemas."""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("⚠️ OPENAI_API_KEY not set — SchemaGenerator returning demo data")
+        """ONE Gemini call to generate relevant JSON-LD schemas."""
+        model = get_gemini_model()
+        if not model:
+            print("⚠️ GEMINI_API_KEY not set — SchemaGenerator returning demo data")
             return self._demo_data(brand_name, domain)
-
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
 
         industry = analysis_data.get("industry", website_data.get("industry", "E-commerce"))
         products = analysis_data.get("products", [])
@@ -110,20 +108,15 @@ You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks
 }}"""
 
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=3000,
-                temperature=0.3,
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.3,
+                    "max_output_tokens": 3000,
+                    "response_mime_type": "application/json",
+                }
             )
-            raw = response.choices[0].message.content.strip()
-            # Strip markdown fences
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0]
-            raw = raw.strip()
-
+            raw = response.text.strip()
             result = json.loads(raw)
             result["is_demo"] = False
             print(f"✅ SchemaGeneratorService returned real data for {brand_name}")

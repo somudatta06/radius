@@ -525,7 +525,7 @@ function RadiusPDFDocument({ data }: RadiusPDFDocumentProps) {
           structure, metadata, and technical signals.
         </Text>
         <Text style={styles.numberedItem}>
-          <Text style={styles.boldText}>2. AI Platform Testing:</Text> Automated queries across ChatGPT (GPT-4),
+          <Text style={styles.boldText}>2. AI Platform Testing:</Text> Automated queries across ChatGPT,
           Claude (Sonnet 4), Google Gemini, and Perplexity AI to measure mention rates and context quality.
         </Text>
         <Text style={styles.numberedItem}>

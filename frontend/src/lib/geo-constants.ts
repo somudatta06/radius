@@ -181,7 +181,7 @@ export const COMPETITOR_DISCOVERY_STEPS: CompetitorDiscoveryStep[] = [
     description: 'We analyze your website content to extract 50-100 core industry keywords using NLP',
     method: 'NLP analysis + TF-IDF + manual verification',
     icon: '🔍',
-    technical_details: 'Uses spaCy for entity extraction, OpenAI embeddings for semantic clustering, and TF-IDF for keyword importance scoring'
+    technical_details: 'Uses spaCy for entity extraction, Gemini embeddings for semantic clustering, and TF-IDF for keyword importance scoring'
   },
   {
     step: 2,
@@ -195,7 +195,7 @@ export const COMPETITOR_DISCOVERY_STEPS: CompetitorDiscoveryStep[] = [
     step: 3,
     title: 'Semantic Similarity Analysis',
     description: 'Using embeddings, we find websites with similar content, products, and target audience',
-    method: 'Vector similarity (cosine) using OpenAI embeddings',
+    method: 'Vector similarity (cosine) using Gemini embeddings',
     icon: '🧠',
     technical_details: 'Generates embeddings for your content and compares against 10M+ indexed websites. Threshold: >0.75 cosine similarity'
   },

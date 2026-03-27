@@ -42,8 +42,8 @@ client = AsyncIOMotorClient(
 )
 db = client.radius_db
 
-# OpenAI client (only supported LLM)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Gemini client (primary LLM)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # In-memory session storage (for simplicity - use Redis in production)
 sessions: Dict[str, Dict] = {}
@@ -338,39 +338,37 @@ def scrape_website(url: str) -> Dict[str, Any]:
         print(f"⚠️  Scraping error for {url}: {str(e)}")
         return default_response
 
-def analyze_with_openai(prompt: str, system_prompt: str = "") -> str:
-    """Analyze using OpenAI gpt-4o-mini (sole supported LLM)."""
-    if not OPENAI_API_KEY:
-        return '{"error": "OPENAI_API_KEY not configured"}'
+def analyze_with_gemini(prompt: str, system_prompt: str = "") -> str:
+    """Analyze using Gemini gemini-2.0-flash (primary LLM)."""
+    from services.gemini_client import get_gemini_model
+    model = get_gemini_model()
+    if not model:
+        return '{"error": "GEMINI_API_KEY not configured"}'
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=2000,
-            temperature=0.7,
-            messages=[
-                {"role": "system", "content": system_prompt or "You are a helpful AI assistant."},
-                {"role": "user", "content": prompt},
-            ],
+        full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+        response = model.generate_content(
+            full_prompt,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 2000,
+            }
         )
-        return response.choices[0].message.content
+        return response.text
     except Exception as e:
-        print(f"OpenAI API error: {str(e)}")
+        print(f"Gemini API error: {str(e)}")
         return f'{{"error": "{str(e)}"}}'
 
 def enhance_analysis_with_ai(website_info: Dict, brand_name: str, domain: str) -> Dict:
     """
-    Use GPT-4o-mini to generate accurate industry detection, GEO scores,
+    Use Gemini to generate accurate industry detection, GEO scores,
     platform-level visibility, and actionable recommendations.
     Returns an empty dict on failure so callers can fall back gracefully.
     """
-    if not OPENAI_API_KEY:
+    from services.gemini_client import get_gemini_model
+    model = get_gemini_model()
+    if not model:
         return {}
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
-
         content_summary = (
             f"Brand: {brand_name}\n"
             f"Domain: {domain}\n"
@@ -442,18 +440,16 @@ Return ONLY this JSON (no markdown, no extra text):
   ]
 }}"""
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            max_tokens=2000,
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.2,
+                "max_output_tokens": 2000,
+                "response_mime_type": "application/json",
+            }
         )
 
-        raw = response.choices[0].message.content.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
+        raw = response.text.strip()
         return json.loads(raw)
 
     except Exception as e:
@@ -474,7 +470,7 @@ async def health_check():
         "status": "ok",
         "service": "radius-api",
         "mongodb": mongo_ok,
-        "openai_configured": bool(OPENAI_API_KEY),
+        "gemini_configured": bool(GEMINI_API_KEY),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -542,7 +538,7 @@ async def analyze_website_endpoint(request: AnalyzeRequest):
             brand_name = brand_name[:100].rsplit(' ', 1)[0] + '...'
 
         # ── AI-POWERED ANALYSIS ─────────────────────────────────────────────
-        print(f"🤖 Running GPT-4o-mini analysis for {brand_name}...")
+        print(f"🤖 Running Gemini analysis for {brand_name}...")
         ai_data = enhance_analysis_with_ai(website_info, brand_name, domain_name)
 
         # ── INDUSTRY ───────────────────────────────────────────────────────
@@ -791,7 +787,7 @@ async def radius_full_analysis(request: AnalyzeRequest):
     
     Executes:
     1. Company Discovery & Raw Data Collection
-    2. ChatGPT-Powered Refinement
+    2. Gemini-Powered Refinement
     3. Knowledge Base Creation
     4. Question Framework Generation
     5. Multi-LLM Visibility Testing
@@ -928,7 +924,7 @@ async def check_api_status():
     import os
     
     return {
-        "openai": bool(os.getenv("OPENAI_API_KEY")),
+        "gemini": bool(os.getenv("GEMINI_API_KEY")),
         "anthropic": bool(os.getenv("ANTHROPIC_API_KEY")),
         "gemini": bool(os.getenv("GEMINI_API_KEY")),
         "perplexity": bool(os.getenv("PERPLEXITY_API_KEY")),
@@ -951,7 +947,7 @@ async def competitors_endpoint(
     - query: Search term (required, e.g., "AI analytics")
     - category: Optional category filter
     - limit: Max results (1-50, default 10)
-    - analyze: Include OpenAI analysis (default false)
+    - analyze: Include Gemini AI analysis (default false)
     
     Returns:
         {
@@ -1193,35 +1189,24 @@ async def generate_brief(request: dict):
     """
     Generate AI-powered analysis brief from scores
     """
-    import os
-    from openai import OpenAI
+    from services.gemini_client import get_gemini_model
     
     overall_score = request.get('overallScore', 0)
     platform_scores = request.get('platformScores', [])
     brand_name = request.get('brandName', 'the brand')
     domain = request.get('domain', '')
     
-    # Get OpenAI client
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
+    model = get_gemini_model()
+    if not model:
         return {"brief": f"With an overall score of {overall_score}/100, {brand_name} shows moderate visibility across AI platforms."}
     
     try:
-        client = OpenAI(api_key=openai_key)
-        
         # Build platform performance text
         platform_text = "\n".join([f"- {p['platform']}: {p['score']}" for p in platform_scores])
         
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an AI visibility analyst. Generate a concise 2-3 sentence analysis brief based on the provided scores. Be factual and specific."
-                },
-                {
-                    "role": "user",
-                    "content": f"""Analyze this AI visibility performance:
+        prompt = f"""You are an AI visibility analyst. Generate a concise 2-3 sentence analysis brief based on the provided scores. Be factual and specific.
+
+Analyze this AI visibility performance:
 
 Brand: {brand_name}
 Domain: {domain}
@@ -1231,13 +1216,16 @@ Platform Scores:
 {platform_text}
 
 Generate a brief 2-3 sentence analysis of their performance."""
-                }
-            ],
-            temperature=0,
-            max_tokens=150
+        
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0,
+                "max_output_tokens": 150,
+            }
         )
         
-        brief = response.choices[0].message.content.strip()
+        brief = response.text.strip()
         return {"brief": brief}
     
     except Exception as e:

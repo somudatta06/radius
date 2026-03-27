@@ -112,7 +112,7 @@ export function CalculationMethodology() {
             We test your visibility across 4 major AI platforms and average the results:
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-            {['ChatGPT (GPT-4)', 'Claude (Sonnet 4)', 'Google Gemini', 'Perplexity AI'].map((platform) => (
+            {['ChatGPT', 'Claude (Sonnet 4)', 'Google Gemini', 'Perplexity AI'].map((platform) => (
               <div key={platform} className="bg-muted p-2 rounded text-center">
                 {platform}
               </div>

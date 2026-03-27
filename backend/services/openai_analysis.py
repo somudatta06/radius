@@ -1,28 +1,25 @@
 """
-OpenAI Analysis Service
+Gemini Analysis Service
 AI-powered competitor scoring and strategic analysis
 """
 import os
 import json
 from typing import List, Dict
 import logging
-from openai import OpenAI
+from services.gemini_client import get_gemini_model
 
 logger = logging.getLogger(__name__)
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-class OpenAIAnalysisService:
-    """Service for AI-powered competitor analysis using OpenAI"""
+class GeminiAnalysisService:
+    """Service for AI-powered competitor analysis using Gemini"""
     
     def __init__(self):
-        self.api_key = OPENAI_API_KEY
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
-        self.model = "gpt-4o-mini"  # Using GPT-4o mini for cost efficiency
+        self.model = get_gemini_model()
     
     def analyze_competitors(self, competitors: List[Dict], user_company: Dict = None) -> Dict:
         """
-        Analyze competitors using OpenAI for scoring and strategic insights
+        Analyze competitors using Gemini for scoring and strategic insights
         
         Args:
             competitors: List of competitor data from Tracxn
@@ -31,9 +28,12 @@ class OpenAIAnalysisService:
         Returns:
             Analysis with scores, strengths, weaknesses, and strategy
         """
-        # Use fallback if no API key or client
-        if not self.client or not self.api_key:
-            logger.warning("OpenAI API key not configured, using fallback analysis")
+        if not self.model:
+            self.model = get_gemini_model()
+        
+        # Use fallback if no model available
+        if not self.model:
+            logger.warning("Gemini API key not configured, using fallback analysis")
             return self._fallback_analysis(competitors)
         
         try:
@@ -43,26 +43,18 @@ class OpenAIAnalysisService:
             # Build analysis prompt
             prompt = self._build_analysis_prompt(competitors_summary, user_company)
             
-            # Call OpenAI API
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert business strategist and competitive analyst. Analyze competitors and provide actionable strategic insights in JSON format."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=2000,
-                response_format={"type": "json_object"}
+            # Call Gemini API
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 2000,
+                    "response_mime_type": "application/json",
+                }
             )
             
             # Parse response
-            analysis = json.loads(response.choices[0].message.content)
+            analysis = json.loads(response.text)
             
             return {
                 "competitorScores": analysis.get("competitor_scores", []),
@@ -73,11 +65,11 @@ class OpenAIAnalysisService:
             }
             
         except Exception as e:
-            logger.error(f"OpenAI analysis error: {str(e)}")
+            logger.error(f"Gemini analysis error: {str(e)}")
             return self._fallback_analysis(competitors)
     
     def _prepare_competitor_summary(self, competitors: List[Dict]) -> str:
-        """Prepare competitor data for OpenAI prompt"""
+        """Prepare competitor data for Gemini prompt"""
         summaries = []
         for idx, comp in enumerate(competitors, 1):
             # Handle both dict and direct funding values
@@ -105,7 +97,7 @@ Competitor {idx}:
         return "\n".join(summaries)
     
     def _build_analysis_prompt(self, competitors_summary: str, user_company: Dict = None) -> str:
-        """Build the analysis prompt for OpenAI"""
+        """Build the analysis prompt for Gemini"""
         
         user_context = ""
         if user_company:
@@ -116,7 +108,8 @@ User's Company Context:
 - Description: {user_company.get('description', '')}
 """
         
-        prompt = f"""
+        prompt = f"""You are an expert business strategist and competitive analyst. Analyze competitors and provide actionable strategic insights in JSON format.
+
 {user_context}
 
 Analyze the following competitors and provide strategic insights:
@@ -157,7 +150,7 @@ Assess threat level based on direct competition and market overlap.
         return prompt
     
     def _fallback_analysis(self, competitors: List[Dict]) -> Dict:
-        """Provide basic analysis if OpenAI fails"""
+        """Provide basic analysis if Gemini fails"""
         competitor_scores = []
         
         for comp in competitors:
@@ -197,4 +190,4 @@ Assess threat level based on direct competition and market overlap.
         }
 
 # Singleton instance
-openai_analysis_service = OpenAIAnalysisService()
+gemini_analysis_service = GeminiAnalysisService()

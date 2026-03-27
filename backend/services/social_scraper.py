@@ -5,28 +5,22 @@ Generates social conversation intelligence from keywords
 import os
 import json
 from typing import Dict, List, Any
+from services.gemini_client import get_gemini_model
 
 
 class SocialScraperService:
-    """Generates social intelligence from brand keywords via GPT"""
+    """Generates social intelligence from brand keywords via Gemini"""
 
     async def scrape_social(self, keywords: list, brand_name: str) -> dict:
-        """ONE GPT call to generate social conversation intelligence"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("⚠️ OPENAI_API_KEY not set — SocialScraperService returning demo data")
+        """ONE Gemini call to generate social conversation intelligence"""
+        model = get_gemini_model()
+        if not model:
+            print("⚠️ GEMINI_API_KEY not set — SocialScraperService returning demo data")
             return self._demo_data()
-
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
 
         try:
             kw_text = ", ".join(keywords[:10]) if keywords else brand_name
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"""You are a social media intelligence analyst for Indian D2C brands.
+            prompt = f"""You are a social media intelligence analyst for Indian D2C brands.
 
 Brand: '{brand_name}'
 Keywords: {kw_text}
@@ -45,16 +39,16 @@ You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks
     {{"angle": "string", "source": "string", "potential_reach": "high/medium/low"}}
   ]
 }}"""
-                }],
-                max_tokens=1200,
-                temperature=0.7
+
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1200,
+                    "response_mime_type": "application/json",
+                }
             )
-            raw = response.choices[0].message.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0]
-            raw = raw.strip()
+            raw = response.text.strip()
             result = json.loads(raw)
             result["is_demo"] = False
             print(f"✅ SocialScraperService returned real data for {brand_name}")

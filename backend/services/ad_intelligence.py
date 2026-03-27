@@ -1,11 +1,12 @@
 """
 Ad Intelligence Service
 Extracts brand keywords, ad strategy, competitor ad strategies, and messaging breakdown.
-Uses gpt-4o-mini; falls back to demo data when no key is available.
+Uses Gemini; falls back to demo data when no key is available.
 """
 import os
 import json
 from typing import Dict, Any, List
+from services.gemini_client import get_gemini_model
 
 
 _DEMO_DATA: Dict[str, Any] = {
@@ -78,7 +79,7 @@ class AdIntelligenceService:
     """
 
     def __init__(self) -> None:
-        self.openai_key = os.getenv("OPENAI_API_KEY")
+        pass
 
     async def analyze_ads(
         self,
@@ -88,20 +89,16 @@ class AdIntelligenceService:
         website_data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        Makes ONE gpt-4o-mini call to extract ad intelligence.
+        Makes ONE Gemini call to extract ad intelligence.
         Falls back to demo data if the key is missing or the call fails.
         """
-        self.openai_key = os.getenv("OPENAI_API_KEY")
+        model = get_gemini_model()
 
-        if not self.openai_key:
-            print("⚠️  No OPENAI_API_KEY — returning demo ad intelligence")
+        if not model:
+            print("⚠️  No GEMINI_API_KEY — returning demo ad intelligence")
             return self._demo(brand_name)
 
         try:
-            from openai import OpenAI
-
-            client = OpenAI(api_key=self.openai_key)
-
             competitor_names = [c.get("name", "") for c in competitors[:3]]
             website_text = (
                 f"Title: {website_data.get('title', brand_name)}. "
@@ -123,18 +120,16 @@ class AdIntelligenceService:
                 f'"recommendations":["rec1","rec2","rec3","rec4"]}}'
             )
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.4,
-                max_tokens=1000,
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.4,
+                    "max_output_tokens": 1000,
+                    "response_mime_type": "application/json",
+                }
             )
 
-            raw = response.choices[0].message.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
+            raw = response.text.strip()
             result: Dict[str, Any] = json.loads(raw)
             return result
 

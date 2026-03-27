@@ -1,11 +1,11 @@
 """
 Competitor Intelligence Service
-Uses GPT to identify real, relevant competitors based on company profile
+Uses Gemini to identify real, relevant competitors based on company profile
 """
 import os
 from typing import Dict, List
-from openai import OpenAI
 import json
+from services.gemini_client import get_gemini_model
 
 class CompetitorIntelligenceService:
     """
@@ -14,8 +14,7 @@ class CompetitorIntelligenceService:
     """
     
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.openai_key) if self.openai_key else None
+        self.model = get_gemini_model()
     
     def identify_competitors(
         self,
@@ -38,19 +37,18 @@ class CompetitorIntelligenceService:
         Returns:
             List of competitor dictionaries with name, domain, description
         """
-        # Reinitialize client if needed (env might load after import)
-        if not self.client:
-            self.openai_key = os.getenv("OPENAI_API_KEY")
-            if self.openai_key:
-                self.client = OpenAI(api_key=self.openai_key)
-                print(f"✅ OpenAI client initialized for competitor ID")
+        # Reinitialize model if needed (env might load after import)
+        if not self.model:
+            self.model = get_gemini_model()
+            if self.model:
+                print(f"✅ Gemini model initialized for competitor ID")
         
-        if not self.client:
-            print("⚠️  OpenAI not available - using fallback competitors")
+        if not self.model:
+            print("⚠️  Gemini not available - using fallback competitors")
             return self._fallback_competitors(company_name, industry)
         
         try:
-            # Build enhanced prompt for GPT with better competitor identification
+            # Build enhanced prompt for Gemini with better competitor identification
             system_prompt = """You are an expert market research analyst specializing in competitive intelligence.
 
 Your task: Identify 5 REAL, DIRECT competitors for the given company.
@@ -134,26 +132,26 @@ DO NOT include:
 
 Return 5 competitors ranked by how DIRECTLY they compete (most similar first)."""
 
-            response = self.client.chat.completions.create(
-                model="gpt-4o",  # Use more capable model for better accuracy
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.1,  # Slight temperature for diversity while staying accurate
-                max_tokens=1200,
-                response_format={"type": "json_object"}
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+            response = self.model.generate_content(
+                full_prompt,
+                generation_config={
+                    "temperature": 0.1,
+                    "max_output_tokens": 1200,
+                    "response_mime_type": "application/json",
+                }
             )
             
-            raw_response = response.choices[0].message.content
-            print(f"🔍 GPT response length: {len(raw_response)} chars")
+            raw_response = response.text
+            print(f"🔍 Gemini response length: {len(raw_response)} chars")
             
             result = json.loads(raw_response)
             competitors = result.get('competitors', [])
             
             # Validate we got reasonable data
             if len(competitors) < 3:
-                print(f"⚠️  GPT returned {len(competitors)} competitors - using fallback")
+                print(f"⚠️  Gemini returned {len(competitors)} competitors - using fallback")
                 print(f"Response: {raw_response[:200]}")
                 return self._fallback_competitors(company_name, industry)
             
@@ -169,7 +167,7 @@ Return 5 competitors ranked by how DIRECTLY they compete (most similar first).""
             return self._fallback_competitors(company_name, industry)
     
     def _fallback_competitors(self, company_name: str, industry: str) -> List[Dict]:
-        """Fallback competitors when GPT unavailable - uses industry-specific defaults"""
+        """Fallback competitors when Gemini unavailable - uses industry-specific defaults"""
         # Try to provide industry-relevant fallbacks instead of generic names
         industry_lower = industry.lower()
         

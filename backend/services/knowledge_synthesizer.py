@@ -1,30 +1,28 @@
 """
-GPT-Powered Knowledge Base Synthesizer
+Gemini-Powered Knowledge Base Synthesizer
 Transforms scraped website content into structured company knowledge
 """
 import os
 import json
 from typing import Dict, Optional
-from openai import OpenAI
+from services.gemini_client import get_gemini_model
 
 class KnowledgeSynthesizer:
-    """Uses GPT to synthesize structured knowledge from website content"""
+    """Uses Gemini to synthesize structured knowledge from website content"""
     
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        if not self.openai_key:
-            print("Warning: OPENAI_API_KEY not configured")
-            self.client = None
-        else:
-            self.client = OpenAI(api_key=self.openai_key)
+        self.model = get_gemini_model()
     
     def synthesize_knowledge_base(self, scraped_data: Dict) -> Dict:
         """
-        Generate HIGH-QUALITY Knowledge Base using structured GPT reasoning
+        Generate HIGH-QUALITY Knowledge Base using structured Gemini reasoning
         Returns validated, cohesive business description
         """
-        if not self.client:
-            print("⚠️  No OpenAI client - using fallback")
+        if not self.model:
+            self.model = get_gemini_model()
+        
+        if not self.model:
+            print("⚠️  No Gemini client - using fallback")
             return self._fallback_knowledge_base(scraped_data)
         
         try:
@@ -37,29 +35,29 @@ class KnowledgeSynthesizer:
                 print(f"⚠️  Insufficient content ({total_content} chars) - using fallback")
                 return self._fallback_knowledge_base(scraped_data)
             
-            print(f"🤖 Synthesizing knowledge with GPT (content: {total_content} chars)...")
+            print(f"🤖 Synthesizing knowledge with Gemini (content: {total_content} chars)...")
             
-            # Generate structured knowledge using GPT WITH REASONING
+            # Generate structured knowledge using Gemini WITH REASONING
             system_prompt = self._get_reasoning_system_prompt()
             user_prompt = self._get_structured_user_prompt(corpus, domain)
             
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0,  # CRITICAL: Zero temperature for factual, deterministic output
-                max_tokens=3000,
-                response_format={"type": "json_object"}
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            
+            response = self.model.generate_content(
+                full_prompt,
+                generation_config={
+                    "temperature": 0,
+                    "max_output_tokens": 3000,
+                    "response_mime_type": "application/json",
+                }
             )
             
-            # Parse GPT response
-            raw_output = response.choices[0].message.content
-            print(f"📄 GPT response length: {len(raw_output)} chars")
+            # Parse Gemini response
+            raw_output = response.text
+            print(f"📄 Gemini response length: {len(raw_output)} chars")
             
             # Debug: print first 500 chars of response
-            print(f"🔍 GPT response preview: {raw_output[:500]}")
+            print(f"🔍 Gemini response preview: {raw_output[:500]}")
             
             knowledge = json.loads(raw_output)
             
@@ -68,14 +66,14 @@ class KnowledgeSynthesizer:
                 print("❌ Quality validation failed - using fallback")
                 return self._fallback_knowledge_base(scraped_data)
             
-            # Transform structured GPT output into KB format
+            # Transform structured Gemini output into KB format
             formatted_kb = self._format_knowledge_base(knowledge, domain, scraped_data.get('total_pages', 0))
             
             print("✅ High-quality KB generated and validated")
             return formatted_kb
         
         except Exception as e:
-            print(f"❌ GPT synthesis error: {str(e)}")
+            print(f"❌ Gemini synthesis error: {str(e)}")
             import traceback
             traceback.print_exc()
             return self._fallback_knowledge_base(scraped_data)
@@ -208,7 +206,7 @@ CRITICAL RULES:
     
     def _validate_quality(self, knowledge: Dict) -> bool:
         """
-        Quality gate - reject low-quality GPT output
+        Quality gate - reject low-quality output
         Returns True only if output meets professional standards
         """
         try:
@@ -262,7 +260,7 @@ CRITICAL RULES:
     
     def _format_knowledge_base(self, knowledge: Dict, domain: str, pages_analyzed: int) -> Dict:
         """
-        Transform reasoning-based GPT output into Knowledge Base format
+        Transform reasoning-based output into Knowledge Base format
         Preserves inference metadata and confidence levels
         """
         overview_data = knowledge.get('company_overview', {})
@@ -335,7 +333,7 @@ CRITICAL RULES:
                 "pages_analyzed": pages_analyzed,
                 "quality": "validated",
                 "timestamp": datetime.utcnow().isoformat(),
-                "model": "gpt-4o-mini",
+                "model": "gemini-2.0-flash",
                 "temperature": 0,
                 "confidence": {
                     "explicit_ratio": confidence_data.get('explicit_information_ratio', '50%'),
@@ -353,27 +351,28 @@ CRITICAL RULES:
     
     def _fallback_knowledge_base(self, scraped_data: Dict) -> Dict:
         """
-        Generate KB using OpenAI when scraping fails
+        Generate KB using Gemini when scraping fails
         NEVER returns placeholder text - always generates useful content
         """
         domain = scraped_data.get('domain', 'website')
         raw_text = scraped_data.get('raw_text', '')[:500]
         
-        # Try to use OpenAI to generate content based on domain
-        if self.client:
+        # Try to use Gemini to generate content based on domain
+        if not self.model:
+            self.model = get_gemini_model()
+        
+        if self.model:
             try:
                 print(f"🤖 Generating KB from domain knowledge for {domain}...")
                 
-                response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": """You are a business analyst. Generate a concise company profile based on the domain name.
-                        
+                prompt = f"""You are a business analyst. Generate a concise company profile based on the domain name.
+
 If you know this company, provide accurate information.
 If you don't know this company, make reasonable inferences from the domain name but mark them as inferences.
 
-CRITICAL: Never use placeholder text like "Please describe..." - always provide substantive content."""},
-                        {"role": "user", "content": f"""Generate a brief company profile for: {domain}
+CRITICAL: Never use placeholder text like "Please describe..." - always provide substantive content.
+
+Generate a brief company profile for: {domain}
 
 Additional context (if any): {raw_text[:300] if raw_text else 'No additional content available'}
 
@@ -383,13 +382,17 @@ Provide:
 3. Target Customers (who they serve)
 4. Market Positioning (how they position themselves)
 
-Format as clear paragraphs, not placeholders."""}
-                    ],
-                    temperature=0.3,
-                    max_tokens=800
+Format as clear paragraphs, not placeholders."""
+
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.3,
+                        "max_output_tokens": 800,
+                    }
                 )
                 
-                generated_text = response.choices[0].message.content
+                generated_text = response.text
                 
                 # Parse the response into sections
                 sections = self._parse_generated_sections(generated_text)

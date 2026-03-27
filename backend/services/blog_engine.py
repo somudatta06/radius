@@ -5,30 +5,24 @@ Generates SEO-optimized blog posts from social intelligence
 import os
 import json
 from typing import Dict, List, Any
+from services.gemini_client import get_gemini_model
 
 
 class BlogEngineService:
     """Generates SEO blog content from social intelligence"""
 
     async def generate_blog(self, topic: str, brand_name: str, keywords: list, social_data: dict) -> dict:
-        """ONE GPT call to generate an SEO blog post"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("⚠️ OPENAI_API_KEY not set — BlogEngineService returning demo data")
+        """ONE Gemini call to generate an SEO blog post"""
+        model = get_gemini_model()
+        if not model:
+            print("⚠️ GEMINI_API_KEY not set — BlogEngineService returning demo data")
             return self._demo_data()
-
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
 
         try:
             kw_text = ", ".join(keywords[:8]) if keywords else topic
             social_summary = str(social_data)[:500] if social_data else "No social data"
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"""You are an SEO content strategist for Indian D2C brands.
+            prompt = f"""You are an SEO content strategist for Indian D2C brands.
 
 Brand: '{brand_name}'
 Topic: '{topic}'
@@ -53,16 +47,16 @@ You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks
   "seo_score": 0-100,
   "readability_score": 0-100
 }}"""
-                }],
-                max_tokens=2000,
-                temperature=0.7
+
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 2000,
+                    "response_mime_type": "application/json",
+                }
             )
-            raw = response.choices[0].message.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0]
-            raw = raw.strip()
+            raw = response.text.strip()
             result = json.loads(raw)
             result["is_demo"] = False
             print(f"✅ BlogEngineService returned real data for {brand_name}")

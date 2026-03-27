@@ -1,6 +1,6 @@
 """
 Reddit Intelligence Service
-Real Reddit data via Apify scraper, with GPT sentiment analysis.
+Real Reddit data via Apify scraper, with Gemini sentiment analysis.
 Falls back to brand-aware rich mock data when Apify is unavailable.
 """
 import os
@@ -19,7 +19,7 @@ _REDDIT_ACTOR = "trudax~reddit-scraper-lite"
 
 class RedditIntelligenceService:
     """
-    Reddit Intelligence with real Apify data + OpenAI KB-aware sentiment.
+    Reddit Intelligence with real Apify data + Gemini KB-aware sentiment.
     Falls back to brand-specific rich mock data when API is unavailable.
     """
 
@@ -30,8 +30,8 @@ class RedditIntelligenceService:
     def _apify_key(self) -> Optional[str]:
         return os.getenv("APIFY_API_KEY")
 
-    def _openai_key(self) -> Optional[str]:
-        return os.getenv("OPENAI_API_KEY")
+    def _gemini_available(self) -> bool:
+        return bool(os.getenv("GEMINI_API_KEY"))
 
     # ──────────────────────────────────────────────────────────────────────
     # Public API
@@ -311,34 +311,37 @@ class RedditIntelligenceService:
         thread_content: str,
         knowledge_base: Dict
     ) -> Dict:
-        """GPT-powered KB-aware sentiment analysis of a Reddit thread."""
-        api_key = self._openai_key()
-        if not api_key:
-            return {"sentiment": "neutral", "sentiment_score": 0.5, "summary": "OpenAI not configured"}
+        """Gemini-powered KB-aware sentiment analysis of a Reddit thread."""
+        if not self._gemini_available():
+            return {"sentiment": "neutral", "sentiment_score": 0.5, "summary": "Gemini not configured"}
 
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
+            from services.gemini_client import get_gemini_model
+            model = get_gemini_model()
+            if not model:
+                return {"sentiment": "neutral", "sentiment_score": 0.5, "summary": "Gemini not configured"}
+
             company_desc = knowledge_base.get("company_description", {})
             brand_guidelines = knowledge_base.get("brand_guidelines", {})
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": (
-                        "Analyze Reddit thread sentiment. ONLY use the provided content. "
-                        "Do NOT invent facts or statistics. "
-                        f"Company context: {str(company_desc.get('overview',''))[:200]}. "
-                        f"Brand tone: {brand_guidelines.get('tone','Professional')}. "
-                        "Return JSON: {\"sentiment\": \"positive|neutral|negative\", \"sentiment_score\": 0-1, \"summary\": \"one sentence\"}"
-                    )},
-                    {"role": "user", "content": f"Title: {thread_title}\nContent: {thread_content[:800]}"}
-                ],
-                temperature=0,
-                max_tokens=150,
-                response_format={"type": "json_object"}
+            prompt = (
+                f"Analyze Reddit thread sentiment. ONLY use the provided content. "
+                f"Do NOT invent facts or statistics. "
+                f"Company context: {str(company_desc.get('overview',''))[:200]}. "
+                f"Brand tone: {brand_guidelines.get('tone','Professional')}. "
+                f'Return JSON: {{"sentiment": "positive|neutral|negative", "sentiment_score": 0-1, "summary": "one sentence"}}\n\n'
+                f"Title: {thread_title}\nContent: {thread_content[:800]}"
             )
-            return json.loads(response.choices[0].message.content)
+
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0,
+                    "max_output_tokens": 150,
+                    "response_mime_type": "application/json",
+                }
+            )
+            return json.loads(response.text)
         except Exception as e:
             print(f"❌ Thread analysis error: {e}")
             return {"sentiment": "neutral", "sentiment_score": 0.5, "summary": "Analysis unavailable"}

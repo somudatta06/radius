@@ -5,28 +5,22 @@ India-specific search query analysis with SGE prediction
 import os
 import json
 from typing import Dict, Any
+from services.gemini_client import get_gemini_model
 
 
 class SearchIntelligenceService:
     """Analyzes search landscape and predicts SGE impact"""
 
     async def analyze_search(self, brand_name: str, category: str, website_data: dict) -> dict:
-        """ONE GPT call for search intelligence"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            print("⚠️ OPENAI_API_KEY not set — SearchIntelligenceService returning demo data")
+        """ONE Gemini call for search intelligence"""
+        model = get_gemini_model()
+        if not model:
+            print("⚠️ GEMINI_API_KEY not set — SearchIntelligenceService returning demo data")
             return self._demo_data(brand_name)
-
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
 
         try:
             site_summary = str(website_data)[:600] if website_data else ""
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{
-                    "role": "user",
-                    "content": f"""You are a search intelligence analyst specializing in Indian market.
+            prompt = f"""You are a search intelligence analyst specializing in Indian market.
 
 Brand: '{brand_name}'
 Category: '{category}'
@@ -56,16 +50,16 @@ You MUST respond with ONLY valid JSON. No markdown, no explanation, no backticks
   ],
   "executive_summary": "2-3 sentence summary specific to {brand_name}"
 }}"""
-                }],
-                max_tokens=1500,
-                temperature=0.7
+
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1500,
+                    "response_mime_type": "application/json",
+                }
             )
-            raw = response.choices[0].message.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0]
-            raw = raw.strip()
+            raw = response.text.strip()
             result = json.loads(raw)
             result["is_demo"] = False
             print(f"✅ SearchIntelligenceService returned real data for {brand_name}")

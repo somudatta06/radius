@@ -6,7 +6,7 @@ import os
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
-from openai import OpenAI
+from services.gemini_client import get_gemini_model
 
 class RadiusQuestionGenerator:
     """
@@ -25,8 +25,7 @@ class RadiusQuestionGenerator:
     """
     
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.openai_key) if self.openai_key else None
+        self.model = get_gemini_model()
     
     def generate_questions(self, knowledge_base: Dict, num_questions: int = 15) -> Dict[str, Any]:
         """
@@ -34,13 +33,11 @@ class RadiusQuestionGenerator:
         
         Returns categorized questions with metadata
         """
-        if not self.client:
-            self.openai_key = os.getenv("OPENAI_API_KEY")
-            if self.openai_key:
-                self.client = OpenAI(api_key=self.openai_key)
+        if not self.model:
+            self.model = get_gemini_model()
         
-        if not self.client:
-            print("⚠️ OpenAI not available - using fallback questions")
+        if not self.model:
+            print("⚠️ Gemini not available - using fallback questions")
             return self._create_fallback_questions(knowledge_base)
         
         print("❓ PHASE 4: Generating intelligent questions...")
@@ -49,8 +46,8 @@ class RadiusQuestionGenerator:
             # Extract KB content
             kb = knowledge_base.get('knowledge_base', {})
             
-            # Generate questions via GPT
-            questions = self._call_gpt_for_questions(kb, num_questions)
+            # Generate questions via Gemini
+            questions = self._call_gemini_for_questions(kb, num_questions)
             
             # Add metadata and structure
             result = self._structure_questions(questions, kb)
@@ -62,8 +59,8 @@ class RadiusQuestionGenerator:
             print(f"❌ Question generation error: {str(e)}")
             return self._create_fallback_questions(knowledge_base)
     
-    def _call_gpt_for_questions(self, kb: Dict, num_questions: int) -> List[Dict]:
-        """Generate questions using GPT"""
+    def _call_gemini_for_questions(self, kb: Dict, num_questions: int) -> List[Dict]:
+        """Generate questions using Gemini"""
         
         # Build KB summary for context
         kb_summary = self._summarize_kb(kb)
@@ -129,18 +126,18 @@ Requirements:
 
 Generate {num_questions} unique, business-relevant questions:"""
 
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,  # Slight creativity for diverse questions
-            max_tokens=3000,
-            response_format={"type": "json_object"}
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+        response = self.model.generate_content(
+            full_prompt,
+            generation_config={
+                "temperature": 0.3,
+                "max_output_tokens": 3000,
+                "response_mime_type": "application/json",
+            }
         )
         
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(response.text)
         return result.get('questions', [])
     
     def _summarize_kb(self, kb: Dict) -> str:
@@ -222,13 +219,13 @@ Generate {num_questions} unique, business-relevant questions:"""
                 'generated_at': datetime.now(timezone.utc).isoformat(),
                 'total_questions': len(questions),
                 'categories': {cat: len(qs) for cat, qs in categorized.items()},
-                'source': 'gpt_generated',
+                'source': 'gemini_generated',
                 'cache_used': False,
             }
         }
     
     def _create_fallback_questions(self, knowledge_base: Dict) -> Dict:
-        """Create basic questions when GPT unavailable"""
+        """Create basic questions when Gemini unavailable"""
         kb = knowledge_base.get('knowledge_base', {})
         company = kb.get('company_overview', {}).get('name', 'this company')
         offering = kb.get('business_model', {}).get('primary_offering', 'services')

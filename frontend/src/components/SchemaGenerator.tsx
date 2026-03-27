@@ -113,7 +113,7 @@ export function SchemaGenerator({ brandName, domain, websiteData, analysisData }
             {data.is_demo && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    Demo schemas — add <code className="font-mono bg-amber-100 px-1 rounded">OPENAI_API_KEY</code> in{" "}
+                    Demo schemas — add <code className="font-mono bg-amber-100 px-1 rounded">GEMINI_API_KEY</code> in{" "}
                     <code className="font-mono bg-amber-100 px-1 rounded">backend/.env</code> for brand-specific schemas
                 </div>
             )}

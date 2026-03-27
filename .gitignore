@@ -8,3 +8,6 @@ vite.config.ts.*
 # Environment files
 *.env
 *.env.*
+__pycache__/
+*.pyc
+.env

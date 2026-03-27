@@ -150,7 +150,7 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
           )}
           
           <p className="text-sm text-gray-500 mt-4">
-            No credit card required • GPT-4o powered analysis • 6 intelligence modules
+            No credit card required • Gemini AI powered analysis • 6 intelligence modules
           </p>
         </form>
 
@@ -167,7 +167,7 @@ export default function HeroSection({ onAnalyze, isLoading, onTimelineComplete }
         <div className="flex flex-wrap items-center justify-center gap-8 pt-8 mt-[-35px] mb-[-35px]">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-gray-700">GPT-4o-mini powered</span>
+            <span className="text-sm font-medium text-gray-700">Gemini AI powered</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold text-black">6</span>

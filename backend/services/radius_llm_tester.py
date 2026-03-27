@@ -2,18 +2,18 @@
 RADIUS PHASE 5: Multi-LLM Visibility Testing
 Tests visibility across ChatGPT, Claude, Perplexity, and Gemini.
 
-NOTE: Only OpenAI (gpt-4o-mini) is used.
-Claude, Gemini, and Perplexity results are SIMULATED via a single GPT call
+NOTE: Only Gemini (gemini-2.0-flash) is used.
+Claude, ChatGPT, and Perplexity results are SIMULATED via a single Gemini call
 that estimates how each platform would describe the brand.
 """
 import os
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
-from openai import OpenAI
+from services.gemini_client import get_gemini_model
 
 
-# Hardcoded demo scores returned when OpenAI key is missing
+# Hardcoded demo scores returned when Gemini key is missing
 _DEMO_PLATFORM_SCORES = {
     "chatgpt": {"score": 62, "summary": "A technology company with a growing online presence and relevant product offerings."},
     "claude":  {"score": 58, "summary": "A brand that appears in relevant search contexts with moderate visibility across AI responses."},
@@ -26,33 +26,21 @@ class RadiusLLMTester:
     """
     PHASE 5: Multi-LLM Visibility Testing
 
-    Uses gpt-4o-mini to:
-    1. Actually query ChatGPT about the brand (real responses).
-    2. Simulate how Claude, Gemini, and Perplexity would describe the brand
-       (one GPT call that returns estimated scores + summaries for all 4 platforms).
+    Uses gemini-2.0-flash to:
+    1. Actually query Gemini about the brand (real responses).
+    2. Simulate how ChatGPT, Claude, and Perplexity would describe the brand
+       (one Gemini call that returns estimated scores + summaries for all 4 platforms).
 
-    If OPENAI_API_KEY is not set, returns hardcoded demo scores so the app
+    If GEMINI_API_KEY is not set, returns hardcoded demo scores so the app
     never crashes.
     """
 
     def __init__(self):
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.openai_client = None
-        self._init_client()
+        self.model = get_gemini_model()
 
-    def _init_client(self):
-        """Initialise OpenAI client if key is available."""
-        if self.openai_key:
-            try:
-                self.openai_client = OpenAI(api_key=self.openai_key)
-            except Exception as e:
-                print(f"⚠️ OpenAI client init error: {e}")
-                self.openai_client = None
-
-    def _refresh_client(self):
+    def _refresh_model(self):
         """Re-read env var and re-initialise (called before each analysis run)."""
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self._init_client()
+        self.model = get_gemini_model()
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -66,7 +54,7 @@ class RadiusLLMTester:
         """
         print("🔬 PHASE 5: Starting multi-LLM visibility testing...")
 
-        self._refresh_client()
+        self._refresh_model()
 
         kb = knowledge_base.get("knowledge_base", {})
         company_name = kb.get("company_overview", {}).get("name", "Unknown")
@@ -84,9 +72,9 @@ class RadiusLLMTester:
             },
         }
 
-        if not self.openai_client:
+        if not self.model:
             # No API key — return demo data for all 4 platforms
-            print("⚠️  No OPENAI_API_KEY — returning demo scores for all platforms")
+            print("⚠️  No GEMINI_API_KEY — returning demo scores for all platforms")
             for platform_key, platform_label, model_label in [
                 ("chatgpt",   "ChatGPT",   "demo"),
                 ("claude",    "Claude",    "demo"),
@@ -98,13 +86,13 @@ class RadiusLLMTester:
                 )
                 results["metadata"]["platforms_available"].append(platform_key)
         else:
-            # Step 1: Real ChatGPT test
-            results["platforms"]["chatgpt"] = self._test_openai(questions, company_name, kb)
-            results["metadata"]["platforms_available"].append("chatgpt")
+            # Step 1: Real Gemini test
+            results["platforms"]["gemini"] = self._test_gemini(questions, company_name, kb)
+            results["metadata"]["platforms_available"].append("gemini")
 
-            # Step 2: Simulate Claude / Gemini / Perplexity with one GPT call
+            # Step 2: Simulate ChatGPT / Claude / Perplexity with one Gemini call
             simulated = self._simulate_other_platforms(company_name, kb, questions)
-            for platform_key in ("claude", "gemini", "perplexity"):
+            for platform_key in ("chatgpt", "claude", "perplexity"):
                 results["platforms"][platform_key] = simulated.get(
                     platform_key,
                     self._demo_result(platform_key.capitalize(), "simulated", company_name, questions),
@@ -120,25 +108,26 @@ class RadiusLLMTester:
         return results
 
     # ------------------------------------------------------------------
-    # Real ChatGPT test
+    # Real Gemini test
     # ------------------------------------------------------------------
 
-    def _test_openai(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
-        """Query ChatGPT with actual brand questions."""
-        print("  Testing ChatGPT (real)...")
+    def _test_gemini(self, questions: List[Dict], company_name: str, kb: Dict) -> Dict:
+        """Query Gemini with actual brand questions."""
+        print("  Testing Gemini (real)...")
 
         results = []
         total_mentions = 0
 
         for q in questions[:5]:
             try:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": q["text"]}],
-                    temperature=0.7,
-                    max_tokens=1000,
+                response = self.model.generate_content(
+                    q["text"],
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 1000,
+                    }
                 )
-                answer = response.choices[0].message.content
+                answer = response.text
                 analysis = self._analyze_response(answer, company_name, kb)
 
                 results.append({
@@ -159,8 +148,8 @@ class RadiusLLMTester:
                 })
 
         return {
-            "platform": "ChatGPT",
-            "model": "gpt-4o-mini",
+            "platform": "Gemini",
+            "model": "gemini-2.0-flash",
             "available": True,
             "simulated": False,
             "questions_tested": len(results),
@@ -171,19 +160,19 @@ class RadiusLLMTester:
         }
 
     # ------------------------------------------------------------------
-    # Simulation: Claude / Gemini / Perplexity via one GPT call
+    # Simulation: ChatGPT / Claude / Perplexity via one Gemini call
     # ------------------------------------------------------------------
 
     def _simulate_other_platforms(
         self, company_name: str, kb: Dict, questions: List[Dict]
     ) -> Dict[str, Dict]:
         """
-        Use GPT-4o-mini to estimate how Claude, Gemini, and Perplexity
+        Use Gemini to estimate how ChatGPT, Claude, and Perplexity
         would each describe and score the brand.
 
         Returns a dict keyed by platform name.
         """
-        print("  Simulating Claude / Gemini / Perplexity via GPT-4o-mini...")
+        print("  Simulating ChatGPT / Claude / Perplexity via Gemini...")
 
         # Build a short content summary from the knowledge base
         overview = kb.get("company_overview", {})
@@ -211,13 +200,15 @@ class RadiusLLMTester:
         )
 
         try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=400,
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.3,
+                    "max_output_tokens": 400,
+                    "response_mime_type": "application/json",
+                }
             )
-            raw = response.choices[0].message.content.strip()
+            raw = response.text.strip()
             simulated_data: Dict = json.loads(raw)
         except Exception as e:
             print(f"⚠️  Simulation call failed: {e} — using demo scores")
@@ -225,13 +216,13 @@ class RadiusLLMTester:
 
         now = datetime.now(timezone.utc).isoformat()
         platform_map = {
+            "chatgpt":    ("ChatGPT",    "chatgpt-simulated"),
             "claude":     ("Claude",     "claude-simulated"),
-            "gemini":     ("Gemini",     "gemini-simulated"),
             "perplexity": ("Perplexity", "perplexity-simulated"),
         }
 
         output: Dict[str, Dict] = {}
-        for key, (label, model) in platform_map.items():
+        for key, (label, model_name) in platform_map.items():
             sim = simulated_data.get(key, _DEMO_PLATFORM_SCORES[key])
             score = int(sim.get("score", 60))
             summary = sim.get("summary", "")
@@ -260,7 +251,7 @@ class RadiusLLMTester:
 
             output[key] = {
                 "platform": label,
-                "model": model,
+                "model": model_name,
                 "available": True,
                 "simulated": True,
                 "questions_tested": len(sim_results),
